@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { getProjectsWithPayments, getProjectTeamMembers, users } from "@/data/mockData";
-import { ProjectStatus, ProjectWithPayments, User } from "@/types";
+import { ProjectStatus, ProjectWithPayments, User, Task } from "@/types";
 import { toast } from "sonner";
 import KanbanColumn from "@/components/projects/KanbanColumn";
 import ProjectDetailDialog from "@/components/projects/ProjectDetailDialog";
@@ -18,7 +18,16 @@ export default function Projects() {
 
   useEffect(() => {
     setTimeout(() => {
-      setProjects(getProjectsWithPayments());
+      const projectsData = getProjectsWithPayments().map(project => ({
+        ...project,
+        tasks: project.id.includes('1') ? [
+          { id: crypto.randomUUID(), title: 'Configuração inicial', completed: true, projectId: project.id },
+          { id: crypto.randomUUID(), title: 'Desenvolvimento de funcionalidades', completed: false, projectId: project.id },
+          { id: crypto.randomUUID(), title: 'Testes e validação', completed: false, projectId: project.id }
+        ] : []
+      }));
+      
+      setProjects(projectsData);
       setLoading(false);
     }, 500);
   }, []);

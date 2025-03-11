@@ -26,6 +26,13 @@ export interface User {
   avatarUrl?: string;
 }
 
+export interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  projectId: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -52,6 +59,7 @@ export interface ProjectWithPayments extends Project {
   payments: Payment[];
   paidAmount: number;
   remainingAmount: number;
+  tasks?: Task[];
 }
 
 export interface ProjectCardProps {

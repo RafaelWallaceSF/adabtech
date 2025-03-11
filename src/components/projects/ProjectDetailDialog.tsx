@@ -1,17 +1,18 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectWithPayments, PaymentStatus, ProjectStatus } from "@/types";
+import { ProjectWithPayments, PaymentStatus, ProjectStatus, Task } from "@/types";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, DollarSign, Users, FileText, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { CalendarDays, DollarSign, Users, FileText, CheckCircle, AlertCircle, Clock, List, Plus, Square, CheckSquare, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getProjectTeamMembers } from "@/data/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface ProjectDetailDialogProps {
   project: ProjectWithPayments;
@@ -25,6 +26,9 @@ export default function ProjectDetailDialog({
   onOpenChange 
 }: ProjectDetailDialogProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [tasks, setTasks] = useState<Task[]>(project.tasks || []);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  
   const teamMembers = getProjectTeamMembers(project);
   
   const progressPercentage = Math.round((project.paidAmount / project.totalValue) * 100);
@@ -56,6 +60,42 @@ export default function ProjectDetailDialog({
     [PaymentStatus.OVERDUE]: "Em Atraso",
   };
 
+  const taskCompletionRate = tasks.length 
+    ? Math.round((tasks.filter(task => task.completed).length / tasks.length) * 100) 
+    : 0;
+
+  const handleAddTask = () => {
+    if (!newTaskTitle.trim()) {
+      toast.error("O título da tarefa não pode estar vazio");
+      return;
+    }
+
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      title: newTaskTitle,
+      completed: false,
+      projectId: project.id
+    };
+
+    setTasks([...tasks, newTask]);
+    setNewTaskTitle("");
+    toast.success("Tarefa adicionada com sucesso");
+  };
+
+  const toggleTaskCompletion = (taskId: string) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId
+        ? { ...task, completed: !task.completed }
+        : task
+    ));
+    toast.success("Status da tarefa atualizado");
+  };
+
+  const deleteTask = (taskId: string) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
+    toast.success("Tarefa removida com sucesso");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -69,9 +109,10 @@ export default function ProjectDetailDialog({
         </DialogHeader>
         
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+            <TabsTrigger value="tasks">Tarefas</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
           </TabsList>
           
@@ -200,6 +241,87 @@ export default function ProjectDetailDialog({
             )}
           </TabsContent>
           
+          <TabsContent value="tasks" className="space-y-4 py-4">
+            <div className="flex flex-col space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    Taxa de Conclusão
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Progresso</span>
+                    <span>{taskCompletionRate}%</span>
+                  </div>
+                  <Progress value={taskCompletionRate} className="h-2" />
+                  <div className="text-sm">
+                    {tasks.filter(task => task.completed).length} de {tasks.length} tarefas concluídas
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    Tarefas do Projeto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Adicionar nova tarefa" 
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                    />
+                    <Button onClick={handleAddTask} size="icon">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {tasks.length > 0 ? (
+                    <div className="space-y-2">
+                      {tasks.map(task => (
+                        <div key={task.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-accent/10 group">
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => toggleTaskCompletion(task.id)}
+                              className="focus:outline-none"
+                            >
+                              {task.completed ? (
+                                <CheckSquare className="h-5 w-5 text-primary" />
+                              ) : (
+                                <Square className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </button>
+                            <span className={task.completed ? "line-through text-muted-foreground" : ""}>
+                              {task.title}
+                            </span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => deleteTask(task.id)}
+                            className="opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhuma tarefa cadastrada para este projeto.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
           <TabsContent value="team" className="space-y-4 py-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Membros da Equipe</h3>
@@ -244,5 +366,3 @@ export default function ProjectDetailDialog({
     </Dialog>
   );
 }
-
-import { Plus } from "lucide-react";
