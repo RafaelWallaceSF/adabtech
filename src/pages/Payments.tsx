@@ -14,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { 
   CheckCircle, 
   Clock, 
@@ -28,6 +27,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 
 export default function Payments() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -40,6 +40,43 @@ export default function Payments() {
       setLoading(false);
     }, 500);
   }, []);
+
+  // Function to mark a payment as paid
+  const markAsPaid = (paymentId: string) => {
+    setProjects(prevProjects => {
+      const newProjects = prevProjects.map(project => {
+        const updatedPayments = project.payments.map(payment => {
+          if (payment.id === paymentId) {
+            return {
+              ...payment,
+              status: PaymentStatus.PAID,
+              paidDate: new Date()
+            };
+          }
+          return payment;
+        });
+        
+        // Recalculate paid and remaining amounts
+        const paidAmount = updatedPayments
+          .filter(payment => payment.status === PaymentStatus.PAID)
+          .reduce((sum, payment) => sum + payment.amount, 0);
+        
+        return {
+          ...project,
+          payments: updatedPayments,
+          paidAmount,
+          remainingAmount: project.totalValue - paidAmount
+        };
+      });
+      
+      return newProjects;
+    });
+    
+    toast({
+      title: "Pagamento confirmado",
+      description: "O pagamento foi marcado como pago com sucesso.",
+    });
+  };
 
   // Extract all payments from all projects
   const allPayments = projects.flatMap(project => 
@@ -99,6 +136,53 @@ export default function Payments() {
       </div>
     );
   }
+
+  // Create a reusable payment row component that includes the action button
+  const PaymentRow = ({ payment, includeActionButton = false }: { payment: Payment & { projectName: string, client: string }, includeActionButton?: boolean }) => (
+    <TableRow key={payment.id}>
+      <TableCell>
+        <div className="flex items-center">
+          {paymentStatusIcon[payment.status]}
+          <span className="ml-2 text-xs">{paymentStatusLabel[payment.status]}</span>
+        </div>
+      </TableCell>
+      <TableCell>{payment.projectName}</TableCell>
+      <TableCell>{payment.client}</TableCell>
+      <TableCell>{payment.description}</TableCell>
+      <TableCell>
+        {format(payment.dueDate, 'dd/MM/yyyy')}
+        {payment.status === PaymentStatus.PAID && payment.paidDate && (
+          <div className="text-xs text-muted-foreground">
+            Pago em: {format(payment.paidDate, 'dd/MM/yyyy')}
+          </div>
+        )}
+        {payment.status === PaymentStatus.OVERDUE && (
+          <div className="text-xs text-destructive">
+            {Math.ceil((Date.now() - payment.dueDate.getTime()) / (1000 * 60 * 60 * 24))} dias em atraso
+          </div>
+        )}
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        {new Intl.NumberFormat('pt-BR', { 
+          style: 'currency', 
+          currency: 'BRL' 
+        }).format(payment.amount)}
+      </TableCell>
+      {includeActionButton && payment.status !== PaymentStatus.PAID && (
+        <TableCell>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center gap-1" 
+            onClick={() => markAsPaid(payment.id)}
+          >
+            <CheckCircle className="h-3 w-3" />
+            Confirmar Pagamento
+          </Button>
+        </TableCell>
+      )}
+    </TableRow>
+  );
 
   return (
     <div className="space-y-6">
@@ -216,40 +300,21 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {allPayments.length > 0 ? (
                   allPayments.map(payment => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {paymentStatusIcon[payment.status]}
-                          <span className="ml-2 text-xs">{paymentStatusLabel[payment.status]}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{payment.projectName}</TableCell>
-                      <TableCell>{payment.client}</TableCell>
-                      <TableCell>{payment.description}</TableCell>
-                      <TableCell>
-                        {format(payment.dueDate, 'dd/MM/yyyy')}
-                        {payment.status === PaymentStatus.PAID && payment.paidDate && (
-                          <div className="text-xs text-muted-foreground">
-                            Pago em: {format(payment.paidDate, 'dd/MM/yyyy')}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(payment.amount)}
-                      </TableCell>
-                    </TableRow>
+                    <PaymentRow 
+                      key={payment.id} 
+                      payment={payment} 
+                      includeActionButton={true} 
+                    />
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                       Nenhum pagamento encontrado.
                     </TableCell>
                   </TableRow>
@@ -270,33 +335,21 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingPayments.length > 0 ? (
                   pendingPayments.map(payment => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {paymentStatusIcon[payment.status]}
-                          <span className="ml-2 text-xs">{paymentStatusLabel[payment.status]}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{payment.projectName}</TableCell>
-                      <TableCell>{payment.client}</TableCell>
-                      <TableCell>{payment.description}</TableCell>
-                      <TableCell>{format(payment.dueDate, 'dd/MM/yyyy')}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(payment.amount)}
-                      </TableCell>
-                    </TableRow>
+                    <PaymentRow 
+                      key={payment.id} 
+                      payment={payment} 
+                      includeActionButton={true} 
+                    />
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                       Nenhum pagamento pendente encontrado.
                     </TableCell>
                   </TableRow>
@@ -322,26 +375,10 @@ export default function Payments() {
               <TableBody>
                 {paidPayments.length > 0 ? (
                   paidPayments.map(payment => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {paymentStatusIcon[payment.status]}
-                          <span className="ml-2 text-xs">{paymentStatusLabel[payment.status]}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{payment.projectName}</TableCell>
-                      <TableCell>{payment.client}</TableCell>
-                      <TableCell>{payment.description}</TableCell>
-                      <TableCell>
-                        {payment.paidDate ? format(payment.paidDate, 'dd/MM/yyyy') : '-'}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(payment.amount)}
-                      </TableCell>
-                    </TableRow>
+                    <PaymentRow 
+                      key={payment.id} 
+                      payment={payment} 
+                    />
                   ))
                 ) : (
                   <TableRow>
@@ -366,38 +403,21 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {overduePayments.length > 0 ? (
                   overduePayments.map(payment => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {paymentStatusIcon[payment.status]}
-                          <span className="ml-2 text-xs">{paymentStatusLabel[payment.status]}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{payment.projectName}</TableCell>
-                      <TableCell>{payment.client}</TableCell>
-                      <TableCell>{payment.description}</TableCell>
-                      <TableCell>
-                        {format(payment.dueDate, 'dd/MM/yyyy')}
-                        <div className="text-xs text-destructive">
-                          {Math.ceil((Date.now() - payment.dueDate.getTime()) / (1000 * 60 * 60 * 24))} dias em atraso
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(payment.amount)}
-                      </TableCell>
-                    </TableRow>
+                    <PaymentRow 
+                      key={payment.id} 
+                      payment={payment} 
+                      includeActionButton={true} 
+                    />
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                       Nenhum pagamento em atraso encontrado.
                     </TableCell>
                   </TableRow>
