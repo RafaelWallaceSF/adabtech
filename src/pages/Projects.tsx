@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -18,7 +17,6 @@ export default function Projects() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
-    // Simulate loading from API
     setTimeout(() => {
       setProjects(getProjectsWithPayments());
       setLoading(false);
@@ -47,14 +45,17 @@ export default function Projects() {
     toast.success("Projeto criado com sucesso");
     setIsCreateOpen(false);
   };
-  
-  // Filter projects by status
+
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+    toast.success("Projeto excluído com sucesso");
+  };
+
   const newProjects = projects.filter(p => p.status === ProjectStatus.NEW);
   const inProgressProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS);
   const inProductionProjects = projects.filter(p => p.status === ProjectStatus.IN_PRODUCTION);
   const activeProjects = projects.filter(p => p.status === ProjectStatus.ACTIVE);
   
-  // Calculate total values for each column
   const calculateTotalValue = (projects: ProjectWithPayments[]) => 
     projects.reduce((total, project) => total + project.totalValue, 0);
     
@@ -85,7 +86,6 @@ export default function Projects() {
         </Button>
       </div>
       
-      {/* Summary Cards with Totals */}
       <div className="grid grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex flex-col items-center justify-center">
@@ -161,6 +161,7 @@ export default function Projects() {
           color="border-kanban-new"
           onDrop={handleDrop}
           onProjectClick={handleProjectClick}
+          onDeleteProject={handleDeleteProject}
         />
         
         <KanbanColumn 
@@ -170,6 +171,7 @@ export default function Projects() {
           color="border-kanban-progress"
           onDrop={handleDrop}
           onProjectClick={handleProjectClick}
+          onDeleteProject={handleDeleteProject}
         />
         
         <KanbanColumn 
@@ -179,6 +181,7 @@ export default function Projects() {
           color="border-kanban-production"
           onDrop={handleDrop}
           onProjectClick={handleProjectClick}
+          onDeleteProject={handleDeleteProject}
         />
         
         <KanbanColumn 
@@ -188,6 +191,7 @@ export default function Projects() {
           color="border-kanban-active"
           onDrop={handleDrop}
           onProjectClick={handleProjectClick}
+          onDeleteProject={handleDeleteProject}
         />
       </div>
 
