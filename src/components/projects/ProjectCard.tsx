@@ -3,12 +3,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProjectWithPayments, User, ProjectStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, DollarSign, Users, ListTodo } from 'lucide-react';
+import { CalendarDays, DollarSign, Users, ListTodo, CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AvatarGroup } from '@/components/ui/avatar-group';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
 
 interface ProjectCardProps {
   project: ProjectWithPayments;
@@ -24,6 +25,12 @@ export default function ProjectCard({ project, teamMembers, onClick }: ProjectCa
   // Count pending payments (those that are not paid)
   const pendingPayments = project.payments.filter(p => p.status !== 'paid');
   const hasPendingTasks = pendingPayments.length > 0;
+  
+  // Calculate task completion rate
+  const totalTasks = project.tasks?.length || 0;
+  const completedTasks = project.tasks?.filter(task => task.completed).length || 0;
+  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const hasActiveTasks = totalTasks > 0;
   
   const statusColors = {
     [ProjectStatus.NEW]: 'border-kanban-new',
@@ -78,6 +85,25 @@ export default function ProjectCard({ project, teamMembers, onClick }: ProjectCa
           {Math.round((project.paidAmount / project.totalValue) * 100)}% pago
         </div>
       </div>
+      
+      {hasActiveTasks && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <CheckCircle2 className="h-3 w-3" />
+          <div className="flex-1">
+            <div className="flex justify-between mb-1">
+              <span>{taskCompletionRate}% concluído</span>
+              <span className="text-[10px]">{completedTasks}/{totalTasks}</span>
+            </div>
+            <Progress 
+              value={taskCompletionRate} 
+              className="h-1.5" 
+              indicatorClassName={cn(
+                taskCompletionRate === 100 ? "bg-green-500" : "bg-blue-500"
+              )}
+            />
+          </div>
+        </div>
+      )}
       
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
         <CalendarDays className="h-3 w-3" />
