@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import KanbanColumn from "@/components/projects/KanbanColumn";
 import ProjectDetailDialog from "@/components/projects/ProjectDetailDialog";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -52,6 +53,16 @@ export default function Projects() {
   const inProgressProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS);
   const inProductionProjects = projects.filter(p => p.status === ProjectStatus.IN_PRODUCTION);
   const activeProjects = projects.filter(p => p.status === ProjectStatus.ACTIVE);
+  
+  // Calculate total values for each column
+  const calculateTotalValue = (projects: ProjectWithPayments[]) => 
+    projects.reduce((total, project) => total + project.totalValue, 0);
+    
+  const newTotal = calculateTotalValue(newProjects);
+  const inProgressTotal = calculateTotalValue(inProgressProjects);
+  const inProductionTotal = calculateTotalValue(inProductionProjects);
+  const activeTotal = calculateTotalValue(activeProjects);
+  const grandTotal = calculateTotalValue(projects);
 
   if (loading) {
     return (
@@ -72,6 +83,74 @@ export default function Projects() {
           <Plus className="mr-2 h-4 w-4" />
           Novo Projeto
         </Button>
+      </div>
+      
+      {/* Summary Cards with Totals */}
+      <div className="grid grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Novos</span>
+            <span className="text-xl font-semibold">
+              {new Intl.NumberFormat('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                maximumFractionDigits: 0 
+              }).format(newTotal)}
+            </span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Em Andamento</span>
+            <span className="text-xl font-semibold">
+              {new Intl.NumberFormat('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                maximumFractionDigits: 0 
+              }).format(inProgressTotal)}
+            </span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Em Produção</span>
+            <span className="text-xl font-semibold">
+              {new Intl.NumberFormat('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                maximumFractionDigits: 0 
+              }).format(inProductionTotal)}
+            </span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Ativos</span>
+            <span className="text-xl font-semibold">
+              {new Intl.NumberFormat('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                maximumFractionDigits: 0 
+              }).format(activeTotal)}
+            </span>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-primary/10">
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Total Geral</span>
+            <span className="text-xl font-semibold">
+              {new Intl.NumberFormat('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                maximumFractionDigits: 0 
+              }).format(grandTotal)}
+            </span>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex gap-6 overflow-x-auto pb-4">

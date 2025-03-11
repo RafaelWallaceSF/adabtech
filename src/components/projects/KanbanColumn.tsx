@@ -31,9 +31,6 @@ export default function KanbanColumn({
     onDrop(projectId, status);
   };
   
-  // Calculate the total value of all projects in this column
-  const totalValue = projects.reduce((total, project) => total + project.totalValue, 0);
-  
   return (
     <div 
       className={cn("kanban-column", color)}
@@ -45,15 +42,6 @@ export default function KanbanColumn({
         <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full bg-muted">
           {projects.length}
         </span>
-      </div>
-      
-      {/* Total value display */}
-      <div className="px-2 py-2 mb-2 text-sm text-center font-medium bg-muted/20 rounded">
-        Total: {new Intl.NumberFormat('pt-BR', { 
-          style: 'currency', 
-          currency: 'BRL',
-          maximumFractionDigits: 0 
-        }).format(totalValue)}
       </div>
       
       <div className="kanban-cards">
