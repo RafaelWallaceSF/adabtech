@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { CreatePaymentDialog } from "@/components/payments/CreatePaymentDialog";
 
 export default function Payments() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -56,7 +56,6 @@ export default function Payments() {
           return payment;
         });
         
-        // Recalculate paid and remaining amounts
         const paidAmount = updatedPayments
           .filter(payment => payment.status === PaymentStatus.PAID)
           .reduce((sum, payment) => sum + payment.amount, 0);
@@ -75,6 +74,26 @@ export default function Payments() {
     toast({
       title: "Pagamento confirmado",
       description: "O pagamento foi marcado como pago com sucesso.",
+    });
+  };
+
+  // Function to add a new payment
+  const handlePaymentCreated = (newPayment: Payment) => {
+    setProjects(prevProjects => {
+      const newProjects = prevProjects.map(project => {
+        if (project.id === newPayment.projectId) {
+          const updatedPayments = [...project.payments, newPayment];
+          
+          return {
+            ...project,
+            payments: updatedPayments,
+            remainingAmount: project.totalValue - project.paidAmount
+          };
+        }
+        return project;
+      });
+      
+      return newProjects;
     });
   };
 
@@ -196,10 +215,10 @@ export default function Payments() {
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Pagamento
-          </Button>
+          <CreatePaymentDialog 
+            projects={projects} 
+            onPaymentCreated={handlePaymentCreated} 
+          />
         </div>
       </div>
 
