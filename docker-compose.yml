@@ -1,0 +1,75 @@
+
+version: '3.8'
+
+services:
+  frontend:
+    image: ${REGISTRY_URL:-localhost}/paytrack-frontend:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8080:80"
+    networks:
+      - paytrack-network
+    depends_on:
+      - db
+    environment:
+      - VITE_API_URL=http://api:3000
+      - VITE_PUBLIC_URL=http://localhost:8080
+
+  api:
+    image: ${REGISTRY_URL:-localhost}/paytrack-api:${TAG:-latest}
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "3000:3000"
+    networks:
+      - paytrack-network
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/paytrack
+      - NODE_ENV=production
+      - PORT=3000
+
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=paytrack
+    networks:
+      - paytrack-network
+    ports:
+      - "5432:5432"
+
+networks:
+  paytrack-network:
+    driver: overlay
+
+volumes:
+  postgres_data:
+    driver: local
