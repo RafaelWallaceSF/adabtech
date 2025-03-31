@@ -113,7 +113,10 @@ const createRecurringPayments = async (projectId: string): Promise<void> => {
       return;
     }
     
-    const project = mapSupabaseProject(projectData);
+    const project = mapSupabaseProject({
+      ...projectData,
+      developer_shares: projectData.developer_shares as Record<string, number> | null
+    });
     
     if (!project.isRecurring) {
       console.log("Project is not recurring. Skipping payment creation.");
