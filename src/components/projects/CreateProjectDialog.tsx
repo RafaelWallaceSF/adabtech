@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,13 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -47,7 +55,6 @@ export default function CreateProjectDialog({
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   );
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
-  const [teamMemberOpen, setTeamMemberOpen] = useState(false);
   const [developers, setDevelopers] = useState<User[]>([]);
   const [loadingDevelopers, setLoadingDevelopers] = useState(false);
 
@@ -205,89 +212,71 @@ export default function CreateProjectDialog({
           
           <div className="space-y-2">
             <Label>Desenvolvedores</Label>
-            <Popover open={teamMemberOpen} onOpenChange={setTeamMemberOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={teamMemberOpen}
-                  className="w-full justify-between"
-                >
-                  {selectedTeamMembers.length > 0
-                    ? `${selectedTeamMembers.length} desenvolvedor(es) selecionado(s)`
-                    : "Selecione desenvolvedores"}
+            <div className="space-y-4">
+              <Select onValueChange={(value) => toggleTeamMember(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um desenvolvedor para adicionar" />
+                </SelectTrigger>
+                <SelectContent>
                   {loadingDevelopers ? (
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0 pointer-events-auto">
-                <Command>
-                  <CommandInput placeholder="Buscar desenvolvedor..." />
-                  <CommandEmpty>
-                    {loadingDevelopers 
-                      ? "Carregando..." 
-                      : "Nenhum desenvolvedor encontrado. Cadastre desenvolvedores na tela Equipe."}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {developers.map((developer) => (
-                      <CommandItem
-                        key={developer.id}
-                        value={developer.name || developer.email}
-                        onSelect={() => toggleTeamMember(developer.id)}
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Carregando...</span>
+                    </div>
+                  ) : developers.length > 0 ? (
+                    developers.map((dev) => (
+                      <SelectItem 
+                        key={dev.id} 
+                        value={dev.id}
+                        disabled={selectedTeamMembers.includes(dev.id)}
                       >
-                        <CheckIcon
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedTeamMembers.includes(developer.id)
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {developer.name || developer.email}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {developers.length === 0 && !loadingDevelopers && (
-              <div className="text-sm text-amber-600 mt-2">
-                <p>
-                  Nenhum desenvolvedor cadastrado. 
-                  <Button 
-                    variant="link" 
-                    className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
-                    onClick={() => {
-                      onOpenChange(false);
-                      window.location.href = '/team';
-                    }}
-                  >
-                    Vá até a página de Equipe
-                  </Button> 
-                  para cadastrar desenvolvedores.
-                </p>
-              </div>
-            )}
-          </div>
-          
-          {selectedTeamMembers.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {selectedTeamMembers.map(id => (
-                <Badge 
-                  key={id} 
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer"
-                  onClick={() => toggleTeamMember(id)}
-                >
-                  {getDeveloperName(id)}
-                  <span className="text-xs ml-1">×</span>
-                </Badge>
-              ))}
+                        {dev.name || dev.email}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="empty" disabled>
+                      Nenhum desenvolvedor encontrado
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {developers.length === 0 && !loadingDevelopers && (
+                <div className="text-sm text-amber-600 mt-2">
+                  <p>
+                    Nenhum desenvolvedor cadastrado. 
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
+                      onClick={() => {
+                        onOpenChange(false);
+                        window.location.href = '/team';
+                      }}
+                    >
+                      Vá até a página de Equipe
+                    </Button> 
+                    para cadastrar desenvolvedores.
+                  </p>
+                </div>
+              )}
+              
+              {selectedTeamMembers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedTeamMembers.map(id => (
+                    <Badge 
+                      key={id} 
+                      variant="secondary"
+                      className="flex items-center gap-1 cursor-pointer"
+                      onClick={() => toggleTeamMember(id)}
+                    >
+                      {getDeveloperName(id)}
+                      <span className="text-xs ml-1">×</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
