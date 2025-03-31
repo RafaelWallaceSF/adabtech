@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { CreatePaymentDialog } from "@/components/payments/CreatePaymentDialog";
 import DeleteConfirmDialog from "@/components/ui/delete-confirm-dialog";
-import { deletePayment } from "@/services/supabaseService";
+import { deletePayment, markPaymentAsPaid } from "@/services/supabaseService";
 
 export default function Payments() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -47,39 +47,58 @@ export default function Payments() {
   }, []);
 
   // Function to mark a payment as paid
-  const markAsPaid = (paymentId: string) => {
-    setProjects(prevProjects => {
-      const newProjects = prevProjects.map(project => {
-        const updatedPayments = project.payments.map(payment => {
-          if (payment.id === paymentId) {
+  const markAsPaid = async (paymentId: string) => {
+    try {
+      const success = await markPaymentAsPaid(paymentId);
+      
+      if (success) {
+        setProjects(prevProjects => {
+          const newProjects = prevProjects.map(project => {
+            const updatedPayments = project.payments.map(payment => {
+              if (payment.id === paymentId) {
+                return {
+                  ...payment,
+                  status: PaymentStatus.PAID,
+                  paidDate: new Date()
+                };
+              }
+              return payment;
+            });
+            
+            const paidAmount = updatedPayments
+              .filter(payment => payment.status === PaymentStatus.PAID)
+              .reduce((sum, payment) => sum + payment.amount, 0);
+            
             return {
-              ...payment,
-              status: PaymentStatus.PAID,
-              paidDate: new Date()
+              ...project,
+              payments: updatedPayments,
+              paidAmount,
+              remainingAmount: project.totalValue - paidAmount
             };
-          }
-          return payment;
+          });
+          
+          return newProjects;
         });
         
-        const paidAmount = updatedPayments
-          .filter(payment => payment.status === PaymentStatus.PAID)
-          .reduce((sum, payment) => sum + payment.amount, 0);
-        
-        return {
-          ...project,
-          payments: updatedPayments,
-          paidAmount,
-          remainingAmount: project.totalValue - paidAmount
-        };
+        toast({
+          title: "Pagamento confirmado",
+          description: "O pagamento foi marcado como pago com sucesso.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível marcar o pagamento como pago.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error marking payment as paid:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao marcar o pagamento como pago.",
+        variant: "destructive",
       });
-      
-      return newProjects;
-    });
-    
-    toast({
-      title: "Pagamento confirmado",
-      description: "O pagamento foi marcado como pago com sucesso.",
-    });
+    }
   };
 
   // Function to add a new payment
@@ -212,7 +231,7 @@ export default function Payments() {
     [PaymentStatus.PENDING]: "Pendente",
     [PaymentStatus.OVERDUE]: "Em Atraso",
   };
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">

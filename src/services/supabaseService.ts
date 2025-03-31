@@ -89,10 +89,66 @@ export const updateProjectStatus = async (projectId: string, status: ProjectStat
       return false;
     }
 
+    if (status === ProjectStatus.ACTIVE) {
+      await createRecurringPayments(projectId);
+    }
+
     return true;
   } catch (error) {
     console.error("Exception updating project status:", error);
     return false;
+  }
+};
+
+const createRecurringPayments = async (projectId: string): Promise<void> => {
+  try {
+    const { data: projectData, error: projectError } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", projectId)
+      .single();
+    
+    if (projectError || !projectData) {
+      console.error("Error fetching project for recurring payments:", projectError);
+      return;
+    }
+    
+    const project = mapSupabaseProject(projectData);
+    
+    if (!project.isRecurring) {
+      console.log("Project is not recurring. Skipping payment creation.");
+      return;
+    }
+    
+    let monthlyAmount = project.totalValue;
+    if (project.isInstallment && project.installmentCount) {
+      monthlyAmount = project.totalValue / project.installmentCount;
+    } else {
+      monthlyAmount = project.totalValue / 12;
+    }
+    
+    const startDate = project.paymentDate || new Date();
+    
+    const installmentCount = project.isInstallment && project.installmentCount 
+      ? project.installmentCount 
+      : 12;
+    
+    for (let i = 0; i < installmentCount; i++) {
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      
+      await createPayment({
+        projectId: project.id,
+        amount: monthlyAmount,
+        dueDate: dueDate,
+        status: PaymentStatus.PENDING,
+        description: `Pagamento ${i + 1} de ${installmentCount} - ${project.name}`
+      });
+    }
+    
+    console.log(`Created ${installmentCount} recurring payments for project ${project.id}`);
+  } catch (error) {
+    console.error("Error creating recurring payments:", error);
   }
 };
 
@@ -417,15 +473,25 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
     return true;
   }
 
-  const { error } = await supabase
-    .from("payments")
-    .delete()
-    .eq("id", paymentId);
+  try {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
+      console.error("Invalid payment ID format. Expected UUID format.", paymentId);
+      return false;
+    }
 
-  if (error) {
-    console.error("Error deleting payment:", error);
+    const { error } = await supabase
+      .from("payments")
+      .delete()
+      .eq("id", paymentId);
+
+    if (error) {
+      console.error("Error deleting payment:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Exception deleting payment:", error);
     return false;
   }
-
-  return true;
 };
