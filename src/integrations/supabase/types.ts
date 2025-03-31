@@ -9,7 +9,139 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          paid_date: string | null
+          project_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          paid_date?: string | null
+          project_id: string
+          status: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          paid_date?: string | null
+          project_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          id: string
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          id: string
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          client: string
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string
+          team_members: string[] | null
+          total_value: number
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status: string
+          team_members?: string[] | null
+          total_value: number
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          team_members?: string[] | null
+          total_value?: number
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          id: string
+          project_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          project_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          project_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
