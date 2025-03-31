@@ -1,14 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, Calendar } from "lucide-react";
 import { Task, User } from "@/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { fetchTasks, fetchUsers, updateTaskStatus } from "@/services/supabaseService";
 import TaskDetailDialog from "@/components/tasks/TaskDetailDialog";
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";

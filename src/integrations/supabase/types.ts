@@ -180,22 +180,31 @@ export type Database = {
       }
       tasks: {
         Row: {
+          assigned_to: string | null
           completed: boolean | null
           created_at: string
+          description: string | null
+          due_date: string | null
           id: string
           project_id: string
           title: string
         }
         Insert: {
+          assigned_to?: string | null
           completed?: boolean | null
           created_at?: string
+          description?: string | null
+          due_date?: string | null
           id?: string
           project_id: string
           title: string
         }
         Update: {
+          assigned_to?: string | null
           completed?: boolean | null
           created_at?: string
+          description?: string | null
+          due_date?: string | null
           id?: string
           project_id?: string
           title?: string
