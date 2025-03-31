@@ -35,6 +35,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ptBR } from "date-fns/locale";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -65,6 +66,7 @@ export default function CreateProjectDialog({
   const [implementationFee, setImplementationFee] = useState("");
   const [isInstallment, setIsInstallment] = useState(false);
   const [installmentCount, setInstallmentCount] = useState("1");
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (open) {
@@ -119,7 +121,8 @@ export default function CreateProjectDialog({
       hasImplementationFee,
       implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
       isInstallment,
-      installmentCount: isInstallment ? parseInt(installmentCount) : undefined
+      installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
+      paymentDate: isRecurring ? paymentDate : undefined
     };
     
     onSubmit(newProject);
@@ -312,6 +315,39 @@ export default function CreateProjectDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              )}
+              
+              {isRecurring && (
+                <div className="space-y-2">
+                  <Label htmlFor="payment-date">Data de Pagamento Mensal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        id="payment-date"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {paymentDate ? (
+                          format(paymentDate, "dd 'de' MMMM", { locale: ptBR })
+                        ) : (
+                          <span>Selecione o dia do pagamento</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={paymentDate}
+                        onSelect={(date) => setPaymentDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    Dia do mês em que o pagamento recorrente é devido.
+                  </p>
                 </div>
               )}
             </div>

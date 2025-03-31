@@ -73,35 +73,39 @@ export default function Projects() {
     
     try {
       // Find the project in our projects array
-      const projectToUpdate = projects.find(p => p.id === projectId);
+      const projectToUpdate = projects.find(p => p.id === projectId || String(p.id) === projectId);
       
       if (!projectToUpdate) {
-        console.error(`Project with ID ${projectId} not found in state`);
+        console.error(`Project with ID ${projectId} not found in state. Available IDs:`, 
+          projects.map(p => ({ id: p.id, type: typeof p.id })));
         toast.error("Projeto não encontrado");
         return;
       }
       
       console.log(`Found project to update:`, projectToUpdate);
       
-      // Optimistically update the UI
+      // Otimisticamente atualiza a UI
       setProjects(prevProjects => 
         prevProjects.map(project => 
-          project.id === projectId 
+          project.id === projectId || project.id === projectToUpdate.id
             ? { ...project, status: newStatus } 
             : project
         )
       );
       
-      // Validate UUID format before sending to the server
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(projectId)) {
-        console.error(`Invalid UUID format for project ID: ${projectId}`);
-        toast.error("ID do projeto em formato inválido");
-        setProjects(originalProjects);
-        return;
+      // Obter o UUID válido do projeto
+      const actualProjectId = typeof projectToUpdate.id === 'string' 
+        ? projectToUpdate.id 
+        : String(projectToUpdate.id);
+      
+      console.log(`Using project ID for update: ${actualProjectId}`);
+      
+      // Se for atualizar no banco de dados, garantir que o ID seja um UUID válido
+      if (actualProjectId !== projectId) {
+        console.log(`Using actual project ID ${actualProjectId} instead of drag ID ${projectId}`);
       }
       
-      const success = await updateProjectStatus(projectId, newStatus);
+      const success = await updateProjectStatus(actualProjectId, newStatus);
       
       if (success) {
         toast.success("Status do projeto atualizado");

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -19,7 +18,8 @@ export const mapSupabaseProject = (project: Database["public"]["Tables"]["projec
     hasImplementationFee: project.has_implementation_fee || false,
     implementationFee: project.implementation_fee ? Number(project.implementation_fee) : undefined,
     isInstallment: project.is_installment || false,
-    installmentCount: project.installment_count || undefined
+    installmentCount: project.installment_count || undefined,
+    paymentDate: project.payment_date ? new Date(project.payment_date) : undefined
   };
 };
 
@@ -57,7 +57,36 @@ export const mapSupabaseUser = (profile: Database["public"]["Tables"]["profiles"
   };
 };
 
-// Fetch all projects with their payments and tasks
+// Update project status
+export const updateProjectStatus = async (projectId: string, status: ProjectStatus): Promise<boolean> => {
+  console.log(`Updating project status in database: Project ID ${projectId}, new status: ${status}`);
+  
+  try {
+    // Validate UUID format manually
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      console.error(`Invalid UUID format for project ID: ${projectId}`);
+      return false;
+    }
+
+    const { error } = await supabase
+      .from("projects")
+      .update({ status })
+      .eq("id", projectId);
+
+    if (error) {
+      console.error("Error updating project status:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Exception updating project status:", error);
+    return false;
+  }
+};
+
+// Fetch all projects
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data: projectsData, error: projectsError } = await supabase
     .from("projects")
@@ -124,28 +153,6 @@ export const fetchProjectWithDetails = async (projectId: string) => {
     paidAmount,
     remainingAmount: project.totalValue - paidAmount
   };
-};
-
-// Update a project's status
-export const updateProjectStatus = async (projectId: string, status: ProjectStatus): Promise<boolean> => {
-  // Check if projectId is a valid UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(projectId)) {
-    console.error(`Invalid UUID format for project ID: ${projectId}`);
-    return false;
-  }
-
-  const { error } = await supabase
-    .from("projects")
-    .update({ status })
-    .eq("id", projectId);
-
-  if (error) {
-    console.error("Error updating project status:", error);
-    return false;
-  }
-
-  return true;
 };
 
 // Create a new project

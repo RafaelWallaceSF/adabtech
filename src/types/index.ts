@@ -1,3 +1,4 @@
+
 export enum ProjectStatus {
   NEW = "new",
   IN_PROGRESS = "in_progress",
@@ -47,6 +48,7 @@ export interface Project {
   implementationFee?: number;
   isInstallment?: boolean;
   installmentCount?: number;
+  paymentDate?: Date; // Nova propriedade para data de pagamento recorrente
 }
 
 export interface Payment {

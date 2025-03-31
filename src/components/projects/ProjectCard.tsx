@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProjectWithPayments, User, ProjectStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, DollarSign, Users, ListTodo, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, DollarSign, Users, ListTodo, CheckCircle2, CalendarClock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AvatarGroup } from '@/components/ui/avatar-group';
 import { cn } from '@/lib/utils';
@@ -40,9 +40,15 @@ export default function ProjectCard({ project, teamMembers, onClick }: ProjectCa
   };
   
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    // Ensure we're sending the actual UUID instead of any timestamp
-    e.dataTransfer.setData('projectId', project.id);
-    console.log("Drag started for project ID:", project.id);
+    // Verificar se o ID do projeto é um UUID válido usando regex
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    // Determinar qual ID usar para o drag
+    const idForDrag = uuidRegex.test(project.id) ? project.id : 
+                     (typeof project.id === 'string' ? project.id : String(project.id));
+    
+    e.dataTransfer.setData('projectId', idForDrag);
+    console.log("Drag started for project ID:", idForDrag, "Original ID:", project.id);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -113,6 +119,15 @@ export default function ProjectCard({ project, teamMembers, onClick }: ProjectCa
           {isOverdue ? 'Em atraso' : 'Prazo'}: {format(project.deadline, 'dd MMM yyyy', { locale: ptBR })}
         </div>
       </div>
+      
+      {project.isRecurring && project.paymentDate && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <CalendarClock className="h-3 w-3" />
+          <div>
+            Pagamento: dia {format(project.paymentDate, 'dd', { locale: ptBR })} de cada mês
+          </div>
+        </div>
+      )}
       
       <div className="flex items-center justify-between mt-4">
         <div className="flex items-center gap-2">
