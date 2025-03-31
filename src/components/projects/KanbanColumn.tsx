@@ -32,7 +32,9 @@ export default function KanbanColumn({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const projectId = e.dataTransfer.getData("projectId");
-    onDrop(projectId, status);
+    if (projectId) {
+      onDrop(projectId, status);
+    }
   };
   
   return (

@@ -67,19 +67,25 @@ export default function Projects() {
   };
 
   const handleDrop = async (projectId: string, newStatus: ProjectStatus) => {
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === projectId 
-          ? { ...project, status: newStatus } 
-          : project
-      )
-    );
-    
-    const success = await updateProjectStatus(projectId, newStatus);
-    
-    if (success) {
-      toast.success("Status do projeto atualizado");
-    } else {
+    try {
+      setProjects(prevProjects => 
+        prevProjects.map(project => 
+          project.id === projectId 
+            ? { ...project, status: newStatus } 
+            : project
+        )
+      );
+      
+      const success = await updateProjectStatus(projectId, newStatus);
+      
+      if (success) {
+        toast.success("Status do projeto atualizado");
+      } else {
+        toast.error("Erro ao atualizar status do projeto");
+        loadProjects();
+      }
+    } catch (error) {
+      console.error("Error updating project status:", error);
       toast.error("Erro ao atualizar status do projeto");
       loadProjects();
     }
