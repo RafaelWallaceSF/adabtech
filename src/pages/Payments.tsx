@@ -46,7 +46,6 @@ export default function Payments() {
     }, 500);
   }, []);
 
-  // Function to mark a payment as paid
   const markAsPaid = async (paymentId: string) => {
     try {
       const success = await markPaymentAsPaid(paymentId);
@@ -101,7 +100,6 @@ export default function Payments() {
     }
   };
 
-  // Function to add a new payment
   const handlePaymentCreated = (newPayment: Payment) => {
     setProjects(prevProjects => {
       const newProjects = prevProjects.map(project => {
@@ -121,11 +119,11 @@ export default function Payments() {
     });
   };
 
-  // Function to handle payment deletion
   const handleDeletePayment = async () => {
     if (!paymentToDelete) return;
     
     try {
+      console.log("Deleting payment with ID:", paymentToDelete.id);
       const success = await deletePayment(paymentToDelete.id);
       
       if (success) {
@@ -175,13 +173,12 @@ export default function Payments() {
     }
   };
 
-  // Function to open delete confirmation dialog
   const confirmDeletePayment = (payment: Payment & { projectName: string, client: string }) => {
+    console.log("Confirming deletion of payment:", payment.id);
     setPaymentToDelete(payment);
     setIsDeleteDialogOpen(true);
   };
 
-  // Extract all payments from all projects
   const allPayments = projects.flatMap(project => 
     project.payments.map(payment => ({
       ...payment,
@@ -190,7 +187,6 @@ export default function Payments() {
     }))
   );
 
-  // Filter by status and search term
   const pendingPayments = allPayments
     .filter(payment => payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.OVERDUE)
     .filter(payment => 
@@ -215,7 +211,6 @@ export default function Payments() {
       payment.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // Calculate totals
   const totalPending = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalPaid = paidPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalOverdue = overduePayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -240,7 +235,6 @@ export default function Payments() {
     );
   }
 
-  // Create a reusable payment row component that includes the action button
   const PaymentRow = ({ payment, includeActionButton = false }: { payment: Payment & { projectName: string, client: string }, includeActionButton?: boolean }) => (
     <TableRow key={payment.id}>
       <TableCell>

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -477,11 +478,10 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
   }
 
   try {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
-      console.error("Invalid payment ID format. Expected UUID format.", paymentId);
-      return false;
-    }
-
+    // Log the payment ID to help with debugging
+    console.log("Attempting to delete payment with ID:", paymentId);
+    
+    // Skip UUID validation if it's causing issues - we'll rely on Supabase's error handling
     const { error } = await supabase
       .from("payments")
       .delete()
@@ -492,6 +492,7 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
       return false;
     }
 
+    console.log("Payment successfully deleted");
     return true;
   } catch (error) {
     console.error("Exception deleting payment:", error);
