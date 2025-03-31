@@ -91,6 +91,52 @@ export const updateProjectStatus = async (projectId: string, status: ProjectStat
   }
 };
 
+// Update project
+export const updateProject = async (
+  projectId: string, 
+  updates: {
+    name?: string;
+    client?: string;
+    description?: string;
+    total_value?: number;
+    deadline?: Date;
+    status?: ProjectStatus;
+    team_members?: string[];
+  }
+): Promise<boolean> => {
+  console.log(`Updating project in database: Project ID ${projectId}`, updates);
+  
+  try {
+    // Skip database update for temporary projects (those with IDs starting with "temp-")
+    if (projectId.startsWith('temp-')) {
+      console.log(`Project ID ${projectId} is temporary. Skipping database update.`);
+      return true;
+    }
+    
+    // Convert deadline to ISO string if it exists
+    const updatedValues = { 
+      ...updates,
+      deadline: updates.deadline ? updates.deadline.toISOString() : undefined
+    };
+    
+    // For permanent projects, update in Supabase
+    const { error } = await supabase
+      .from("projects")
+      .update(updatedValues)
+      .eq("id", projectId);
+
+    if (error) {
+      console.error("Error updating project:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Exception updating project:", error);
+    return false;
+  }
+};
+
 // Fetch all projects
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data: projectsData, error: projectsError } = await supabase
