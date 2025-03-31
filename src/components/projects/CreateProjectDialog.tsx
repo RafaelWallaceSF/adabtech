@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,14 @@ export default function CreateProjectDialog({
   const [shareType, setShareType] = useState<'percentage' | 'value'>('percentage');
   const [clients, setClients] = useState<Array<{ id: string, name: string }>>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  
+  // Adding the missing state variables
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [hasImplementationFee, setHasImplementationFee] = useState(false);
+  const [implementationFee, setImplementationFee] = useState("");
+  const [isInstallment, setIsInstallment] = useState(false);
+  const [installmentCount, setInstallmentCount] = useState("");
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (open) {
@@ -199,6 +208,12 @@ export default function CreateProjectDialog({
     setDeveloperShares({});
     setShareType('percentage');
     setSelectedClientId(null);
+    setPaymentDate(undefined);
+    setIsRecurring(false);
+    setHasImplementationFee(false);
+    setImplementationFee("");
+    setIsInstallment(false);
+    setInstallmentCount("");
   };
   
   const toggleTeamMember = (userId: string) => {
