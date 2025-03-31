@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -478,10 +477,8 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
   }
 
   try {
-    // Log the payment ID to help with debugging
     console.log("Attempting to delete payment with ID:", paymentId);
     
-    // Skip UUID validation if it's causing issues - we'll rely on Supabase's error handling
     const { error } = await supabase
       .from("payments")
       .delete()

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,46 @@ export default function Payments() {
 
   const markAsPaid = async (paymentId: string) => {
     try {
+      // For mock data, check if paymentId is not a UUID and handle accordingly
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
+        // Handle mock data payment update locally
+        setProjects(prevProjects => {
+          const newProjects = prevProjects.map(project => {
+            const updatedPayments = project.payments.map(payment => {
+              if (payment.id === paymentId) {
+                return {
+                  ...payment,
+                  status: PaymentStatus.PAID,
+                  paidDate: new Date()
+                };
+              }
+              return payment;
+            });
+            
+            const paidAmount = updatedPayments
+              .filter(payment => payment.status === PaymentStatus.PAID)
+              .reduce((sum, payment) => sum + payment.amount, 0);
+            
+            return {
+              ...project,
+              payments: updatedPayments,
+              paidAmount,
+              remainingAmount: project.totalValue - paidAmount
+            };
+          });
+          
+          return newProjects;
+        });
+        
+        toast({
+          title: "Pagamento confirmado",
+          description: "O pagamento foi marcado como pago com sucesso.",
+        });
+        
+        return;
+      }
+      
+      // If it's a valid UUID, use the Supabase service
       const success = await markPaymentAsPaid(paymentId);
       
       if (success) {
@@ -124,6 +165,43 @@ export default function Payments() {
     
     try {
       console.log("Deleting payment with ID:", paymentToDelete.id);
+      
+      // For mock data, check if paymentId is not a UUID and handle accordingly
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentToDelete.id)) {
+        // Handle mock data payment deletion locally
+        setProjects(prevProjects => {
+          return prevProjects.map(project => {
+            if (project.id === paymentToDelete.projectId) {
+              const updatedPayments = project.payments.filter(
+                payment => payment.id !== paymentToDelete.id
+              );
+              
+              const paidAmount = updatedPayments
+                .filter(payment => payment.status === PaymentStatus.PAID)
+                .reduce((sum, payment) => sum + payment.amount, 0);
+              
+              return {
+                ...project,
+                payments: updatedPayments,
+                paidAmount,
+                remainingAmount: project.totalValue - paidAmount
+              };
+            }
+            return project;
+          });
+        });
+        
+        toast({
+          title: "Pagamento excluído",
+          description: "O pagamento foi excluído com sucesso.",
+        });
+        
+        setPaymentToDelete(null);
+        setIsDeleteDialogOpen(false);
+        return;
+      }
+      
+      // If it's a valid UUID, use the Supabase service
       const success = await deletePayment(paymentToDelete.id);
       
       if (success) {
