@@ -4,7 +4,8 @@ import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/ty
 
 // Adiciona o tipo payment_date que está faltando
 type ProjectWithPaymentDate = Database["public"]["Tables"]["projects"]["Row"] & { 
-  payment_date?: string | null 
+  payment_date?: string | null,
+  developer_shares?: Record<string, number> | null
 };
 
 // Convert Supabase project data to our application Project type
@@ -13,6 +14,7 @@ export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => 
     id: project.id,
     name: project.name,
     client: project.client,
+    clientId: project.client_id || undefined,
     totalValue: Number(project.total_value),
     status: project.status as ProjectStatus,
     teamMembers: project.team_members || [],
@@ -24,7 +26,8 @@ export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => 
     implementationFee: project.implementation_fee ? Number(project.implementation_fee) : undefined,
     isInstallment: project.is_installment || false,
     installmentCount: project.installment_count || undefined,
-    paymentDate: project.payment_date ? new Date(project.payment_date) : undefined
+    paymentDate: project.payment_date ? new Date(project.payment_date) : undefined,
+    developerShares: project.developer_shares as Record<string, number> || {}
   };
 };
 
@@ -97,11 +100,13 @@ export const updateProject = async (
   updates: {
     name?: string;
     client?: string;
+    client_id?: string;
     description?: string;
     total_value?: number;
     deadline?: Date;
     status?: ProjectStatus;
     team_members?: string[];
+    developer_shares?: Record<string, number>;
   }
 ): Promise<boolean> => {
   console.log(`Updating project in database: Project ID ${projectId}`, updates);
@@ -213,6 +218,7 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
     .insert({
       name: project.name,
       client: project.client,
+      client_id: project.clientId,
       total_value: project.totalValue,
       status: project.status,
       team_members: project.teamMembers,
@@ -223,7 +229,8 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       implementation_fee: project.implementationFee,
       is_installment: project.isInstallment,
       installment_count: project.installmentCount,
-      payment_date: project.paymentDate?.toISOString()
+      payment_date: project.paymentDate?.toISOString(),
+      developer_shares: project.developerShares || {}
     })
     .select()
     .single();
@@ -304,4 +311,19 @@ export const fetchUsers = async (): Promise<User[]> => {
   }
 
   return data.map(mapSupabaseUser);
+};
+
+// Fetch clients
+export const fetchClients = async () => {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching clients:", error);
+    return [];
+  }
+
+  return data;
 };

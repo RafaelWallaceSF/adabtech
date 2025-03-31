@@ -37,6 +37,7 @@ export interface Project {
   id: string;
   name: string;
   client: string;
+  clientId?: string;
   totalValue: number;
   status: ProjectStatus;
   teamMembers: string[];
@@ -48,7 +49,8 @@ export interface Project {
   implementationFee?: number;
   isInstallment?: boolean;
   installmentCount?: number;
-  paymentDate?: Date; // Nova propriedade para data de pagamento recorrente
+  paymentDate?: Date;
+  developerShares?: Record<string, number>;
 }
 
 export interface Payment {
@@ -80,4 +82,17 @@ export interface KanbanColumnProps {
   projects: ProjectWithPayments[];
   color: string;
   onDrop: (projectId: string, status: ProjectStatus) => void;
+  onProjectClick: (project: ProjectWithPayments) => void;
+  onDeleteProject: (projectId: string) => void;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  notes: string | null;
 }

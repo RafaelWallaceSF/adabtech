@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -77,9 +113,11 @@ export type Database = {
       projects: {
         Row: {
           client: string
+          client_id: string | null
           created_at: string
           deadline: string | null
           description: string | null
+          developer_shares: Json | null
           has_implementation_fee: boolean | null
           id: string
           implementation_fee: number | null
@@ -94,9 +132,11 @@ export type Database = {
         }
         Insert: {
           client: string
+          client_id?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          developer_shares?: Json | null
           has_implementation_fee?: boolean | null
           id?: string
           implementation_fee?: number | null
@@ -111,9 +151,11 @@ export type Database = {
         }
         Update: {
           client?: string
+          client_id?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          developer_shares?: Json | null
           has_implementation_fee?: boolean | null
           id?: string
           implementation_fee?: number | null
@@ -126,7 +168,15 @@ export type Database = {
           team_members?: string[] | null
           total_value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {

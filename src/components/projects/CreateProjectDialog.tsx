@@ -61,19 +61,15 @@ export default function CreateProjectDialog({
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
   const [developers, setDevelopers] = useState<User[]>([]);
   const [loadingDevelopers, setLoadingDevelopers] = useState(false);
-  
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [hasImplementationFee, setHasImplementationFee] = useState(false);
-  const [implementationFee, setImplementationFee] = useState("");
-  const [isInstallment, setIsInstallment] = useState(false);
-  const [installmentCount, setInstallmentCount] = useState("1");
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(
-    new Date(new Date().setDate(10))
-  );
+  const [developerShares, setDeveloperShares] = useState<Record<string, number>>({});
+  const [shareType, setShareType] = useState<'percentage' | 'value'>('percentage');
+  const [clients, setClients] = useState<Array<{ id: string, name: string }>>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       fetchDevelopers();
+      fetchClients();
     }
   }, [open]);
 
@@ -99,10 +95,29 @@ export default function CreateProjectDialog({
     }
   };
 
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name')
+        .order('name');
+
+      if (error) {
+        toast.error("Erro ao carregar clientes");
+        console.error("Error fetching clients:", error);
+      } else {
+        setClients(data || []);
+      }
+    } catch (error) {
+      toast.error("Erro ao carregar clientes");
+      console.error("Error fetching clients:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !client || !totalValue || !deadline) {
+    if (!name || !selectedClientId || !totalValue || !deadline) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -119,7 +134,7 @@ export default function CreateProjectDialog({
       const tempProject: ProjectWithPayments = {
         id: tempId,
         name,
-        client,
+        client: clients.find(c => c.id === selectedClientId)?.name || "",
         totalValue: parseFloat(totalValue),
         status: ProjectStatus.NEW,
         teamMembers: selectedTeamMembers,
@@ -141,7 +156,8 @@ export default function CreateProjectDialog({
       
       const projectData = {
         name,
-        client,
+        client: clients.find(c => c.id === selectedClientId)?.name || "",
+        client_id: selectedClientId,
         totalValue: parseFloat(totalValue),
         status: ProjectStatus.NEW,
         teamMembers: selectedTeamMembers,
@@ -152,7 +168,8 @@ export default function CreateProjectDialog({
         implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
         isInstallment,
         installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
-        paymentDate: isRecurring ? paymentDate : undefined
+        paymentDate: isRecurring ? paymentDate : undefined,
+        developer_shares: developerShares
       };
       
       console.log("Saving project to Supabase with data:", projectData);
@@ -179,19 +196,44 @@ export default function CreateProjectDialog({
     setDescription("");
     setDeadline(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     setSelectedTeamMembers([]);
-    setIsRecurring(false);
-    setHasImplementationFee(false);
-    setImplementationFee("");
-    setIsInstallment(false);
-    setInstallmentCount("1");
+    setDeveloperShares({});
+    setShareType('percentage');
+    setSelectedClientId(null);
   };
   
   const toggleTeamMember = (userId: string) => {
-    setSelectedTeamMembers(prev => 
-      prev.includes(userId)
+    setSelectedTeamMembers(prev => {
+      const newMembers = prev.includes(userId)
         ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+        : [...prev, userId];
+      
+      if (prev.includes(userId) && !newMembers.includes(userId)) {
+        setDeveloperShares(shares => {
+          const newShares = {...shares};
+          delete newShares[userId];
+          return newShares;
+        });
+      }
+      
+      return newMembers;
+    });
+  };
+
+  const updateDeveloperShare = (userId: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setDeveloperShares(prev => ({
+      ...prev,
+      [userId]: numValue
+    }));
+  };
+
+  const getTotalShare = (): number => {
+    if (shareType === 'percentage') {
+      return Object.values(developerShares).reduce((sum, share) => sum + share, 0);
+    } else {
+      const totalShareValue = Object.values(developerShares).reduce((sum, share) => sum + share, 0);
+      return totalValue ? (totalShareValue / parseFloat(totalValue)) * 100 : 0;
+    }
   };
 
   const getDeveloperName = (id: string): string => {
@@ -215,7 +257,7 @@ export default function CreateProjectDialog({
           <form onSubmit={handleSubmit} className="space-y-4 px-1 pb-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome do Projeto</Label>
+                <Label htmlFor="name">Nome do Projeto *</Label>
                 <Input
                   id="name"
                   value={name}
@@ -226,20 +268,53 @@ export default function CreateProjectDialog({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="client">Cliente</Label>
-                <Input
-                  id="client"
-                  value={client}
-                  onChange={(e) => setClient(e.target.value)}
-                  placeholder="Nome do cliente"
-                  required
-                />
+                <Label htmlFor="client">Cliente *</Label>
+                <Select
+                  value={selectedClientId || ""}
+                  onValueChange={setSelectedClientId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.length > 0 ? (
+                      clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        Nenhum cliente encontrado
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                
+                {clients.length === 0 && (
+                  <div className="text-sm text-amber-600 mt-2">
+                    <p>
+                      Nenhum cliente cadastrado. 
+                      <Button 
+                        variant="link" 
+                        className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
+                        onClick={() => {
+                          onOpenChange(false);
+                          window.location.href = '/clients';
+                        }}
+                      >
+                        Vá até a página de Clientes
+                      </Button> 
+                      para cadastrar clientes.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="totalValue">Valor Total (R$)</Label>
+                <Label htmlFor="totalValue">Valor Total (R$) *</Label>
                 <Input
                   id="totalValue"
                   type="number"
@@ -253,7 +328,7 @@ export default function CreateProjectDialog({
               </div>
               
               <div className="space-y-2">
-                <Label>Prazo</Label>
+                <Label>Prazo *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -403,8 +478,34 @@ export default function CreateProjectDialog({
               )}
             </div>
             
-            <div className="space-y-2">
-              <Label>Desenvolvedores</Label>
+            <div className="space-y-4 border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Desenvolvedores</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Distribuição por:</span>
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button 
+                      type="button"
+                      variant={shareType === 'percentage' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setShareType('percentage')} 
+                      className="rounded-none"
+                    >
+                      Percentual
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant={shareType === 'value' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setShareType('value')} 
+                      className="rounded-none"
+                    >
+                      Valor
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
               <div className="space-y-4">
                 <Select onValueChange={(value) => toggleTeamMember(value)}>
                   <SelectTrigger className="w-full">
@@ -454,18 +555,54 @@ export default function CreateProjectDialog({
                 )}
                 
                 {selectedTeamMembers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedTeamMembers.map(id => (
-                      <Badge 
-                        key={id} 
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer"
-                        onClick={() => toggleTeamMember(id)}
-                      >
-                        {getDeveloperName(id)}
-                        <span className="text-xs ml-1">×</span>
-                      </Badge>
+                  <div className="border rounded-md p-4 space-y-3">
+                    {selectedTeamMembers.map(devId => (
+                      <div key={devId} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-5 truncate font-medium">
+                          {getDeveloperName(devId)}
+                        </div>
+                        <div className="col-span-5">
+                          <div className="flex items-center border rounded-md">
+                            <Input
+                              type="number"
+                              min="0"
+                              step={shareType === 'percentage' ? "0.1" : "0.01"}
+                              value={developerShares[devId] || ""}
+                              onChange={(e) => updateDeveloperShare(devId, e.target.value)}
+                              className="border-0 focus-visible:ring-0 text-right pr-0"
+                              placeholder="0"
+                            />
+                            <span className="pr-3 text-muted-foreground">
+                              {shareType === 'percentage' ? '%' : 'R$'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="col-span-2 flex justify-end">
+                          <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => toggleTeamMember(devId)}
+                          >
+                            <span className="text-xs">×</span>
+                          </Button>
+                        </div>
+                      </div>
                     ))}
+                    
+                    <div className="pt-2 border-t flex justify-between items-center">
+                      <span className="font-medium">Total:</span>
+                      <span className={`font-medium ${getTotalShare() > 100 && shareType === 'percentage' ? 'text-red-500' : ''}`}>
+                        {getTotalShare().toFixed(1)}
+                        {shareType === 'percentage' ? '%' : ` R$ de ${parseFloat(totalValue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+                      </span>
+                    </div>
+                    
+                    {getTotalShare() > 100 && shareType === 'percentage' && (
+                      <div className="text-xs text-red-500">
+                        Atenção: O total excede 100%. Por favor, ajuste as porcentagens.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -488,7 +625,13 @@ export default function CreateProjectDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button type="submit" onClick={handleSubmit}>Criar Projeto</Button>
+          <Button 
+            type="submit"
+            onClick={handleSubmit}
+            disabled={getTotalShare() > 100 && shareType === 'percentage'}
+          >
+            Criar Projeto
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

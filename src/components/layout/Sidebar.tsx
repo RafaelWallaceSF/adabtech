@@ -1,6 +1,7 @@
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Kanban, Users, FileText, Settings, CreditCard, LogOut } from "lucide-react";
+import { LayoutDashboard, Kanban, Users, FileText, Settings, CreditCard, LogOut, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,6 +17,11 @@ const navItems = [
     icon: Kanban,
     label: "Projetos",
     path: "/projects"
+  },
+  {
+    icon: Building2,
+    label: "Clientes",
+    path: "/clients"
   },
   {
     icon: CreditCard,
