@@ -20,38 +20,40 @@ import Clients from "./pages/Clients";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Rotas públicas */}
-            <Route element={<PublicRoute />}>
-              <Route path="/login" element={<Login />} />
-            </Route>
-            
-            {/* Rotas protegidas */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/payments" element={<Payments />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/settings" element={<Settings />} />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Rotas públicas */}
+              <Route element={<PublicRoute />}>
+                <Route path="/login" element={<Login />} />
               </Route>
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+              
+              {/* Rotas protegidas */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/payments" element={<Payments />} />
+                  <Route path="/team" element={<Team />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
