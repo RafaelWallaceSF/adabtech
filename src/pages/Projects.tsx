@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getProjectsWithPayments } from "@/data/mockData";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { toast } from "sonner";
 import KanbanColumn from "@/components/projects/KanbanColumn";
@@ -9,6 +8,7 @@ import ProjectDetailDialog from "@/components/projects/ProjectDetailDialog";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteProject, fetchProjects, updateProjectStatus } from "@/services/supabaseService";
 
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -19,9 +19,19 @@ export default function Projects() {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      const projectsData = getProjectsWithPayments().map(project => ({
+    loadProjects();
+    fetchUsers();
+  }, []);
+
+  const loadProjects = async () => {
+    setLoading(true);
+    try {
+      const projectsData = await fetchProjects();
+      const projectsWithPayments = projectsData.map(project => ({
         ...project,
+        payments: [],
+        paidAmount: 0,
+        remainingAmount: project.totalValue,
         tasks: project.id.includes('1') ? [
           { id: crypto.randomUUID(), title: 'Configuração inicial', completed: true, projectId: project.id },
           { id: crypto.randomUUID(), title: 'Desenvolvimento de funcionalidades', completed: false, projectId: project.id },
@@ -29,12 +39,14 @@ export default function Projects() {
         ] : []
       }));
       
-      setProjects(projectsData);
+      setProjects(projectsWithPayments);
+    } catch (error) {
+      console.error("Error loading projects:", error);
+      toast.error("Erro ao carregar projetos");
+    } finally {
       setLoading(false);
-    }, 500);
-
-    fetchUsers();
-  }, []);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -54,7 +66,7 @@ export default function Projects() {
     }
   };
 
-  const handleDrop = (projectId: string, newStatus: ProjectStatus) => {
+  const handleDrop = async (projectId: string, newStatus: ProjectStatus) => {
     setProjects(prevProjects => 
       prevProjects.map(project => 
         project.id === projectId 
@@ -63,7 +75,14 @@ export default function Projects() {
       )
     );
     
-    toast.success("Status do projeto atualizado");
+    const success = await updateProjectStatus(projectId, newStatus);
+    
+    if (success) {
+      toast.success("Status do projeto atualizado");
+    } else {
+      toast.error("Erro ao atualizar status do projeto");
+      loadProjects();
+    }
   };
 
   const handleProjectClick = (project: ProjectWithPayments) => {
@@ -77,9 +96,20 @@ export default function Projects() {
     setIsCreateOpen(false);
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
-    toast.success("Projeto excluído com sucesso");
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const success = await deleteProject(projectId);
+      
+      if (success) {
+        setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+        toast.success("Projeto excluído com sucesso");
+      } else {
+        toast.error("Erro ao excluir projeto");
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error("Erro ao excluir projeto");
+    }
   };
 
   const newProjects = projects.filter(p => p.status === ProjectStatus.NEW);
