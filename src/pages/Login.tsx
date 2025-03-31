@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -33,32 +33,6 @@ const Login = () => {
     } catch (error) {
       toast.error("Ocorreu um erro inesperado. Tente novamente.");
       console.error("Login error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
-
-      if (error) {
-        toast.error("Erro ao criar conta: " + error.message);
-      } else {
-        toast.success("Cadastro realizado! Verifique seu email para confirmar.");
-      }
-    } catch (error) {
-      toast.error("Ocorreu um erro inesperado. Tente novamente.");
-      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
@@ -118,19 +92,6 @@ const Login = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm">
-            Não tem uma conta?
-          </div>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleRegister}
-            disabled={loading}
-          >
-            Criar nova conta
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

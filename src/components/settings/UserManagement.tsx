@@ -1,16 +1,36 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, UserPlus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, UserPlus, ShieldAlert } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const UserManagement = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // Verificar se o usuário atual é administrador
+    const checkIfAdmin = async () => {
+      if (!user) return;
+      
+      // Verifica se o email é o do administrador predefinido
+      if (user.email === "admin@exemple.com.br") {
+        setIsAdmin(true);
+        return;
+      }
+      
+      setIsAdmin(false);
+    };
+
+    checkIfAdmin();
+  }, [user]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +62,26 @@ export const UserManagement = () => {
       setLoading(false);
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Gerenciar Usuários</CardTitle>
+          <CardDescription>
+            Somente administradores podem acessar esta funcionalidade
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-6">
+          <ShieldAlert className="h-12 w-12 text-amber-500 mb-4" />
+          <p className="text-center text-muted-foreground">
+            Você não tem permissão para criar novos usuários. 
+            Entre em contato com um administrador do sistema.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
