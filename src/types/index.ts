@@ -31,6 +31,10 @@ export interface Task {
   title: string;
   completed: boolean;
   projectId: string;
+  description?: string;
+  dueDate?: string;
+  assignedTo?: string;
+  createdAt?: string;
 }
 
 export interface Project {
