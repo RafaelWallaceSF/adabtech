@@ -93,7 +93,7 @@ export default function Projects() {
         )
       );
       
-      // Obter o UUID válido do projeto
+      // Obter o ID válido do projeto
       const actualProjectId = typeof projectToUpdate.id === 'string' 
         ? projectToUpdate.id 
         : String(projectToUpdate.id);

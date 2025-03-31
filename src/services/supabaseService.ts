@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -67,13 +68,16 @@ export const updateProjectStatus = async (projectId: string, status: ProjectStat
   console.log(`Updating project status in database: Project ID ${projectId}, new status: ${status}`);
   
   try {
-    // Validate UUID format manually
+    // Verifica se o ID é um UUID (utilizado pelo Supabase) ou numérico (criado localmente)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
     if (!uuidRegex.test(projectId)) {
-      console.error(`Invalid UUID format for project ID: ${projectId}`);
-      return false;
+      console.log(`ID ${projectId} não é um UUID válido. Este projeto pode ser temporário ou recém-criado.`);
+      // Se não for um UUID válido, atualiza apenas o estado local (não tenta atualizar no banco)
+      return true;
     }
 
+    // Se for um UUID válido, atualiza no Supabase
     const { error } = await supabase
       .from("projects")
       .update({ status })
