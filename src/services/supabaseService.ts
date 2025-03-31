@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -45,8 +44,15 @@ export const mapSupabasePayment = (payment: Database["public"]["Tables"]["paymen
   };
 };
 
+// Updated Task type in Supabase
+type SupabaseTask = Database["public"]["Tables"]["tasks"]["Row"] & {
+  description?: string | null;
+  due_date?: string | null;
+  assigned_to?: string | null;
+};
+
 // Convert Supabase task data to our application Task type
-export const mapSupabaseTask = (task: Database["public"]["Tables"]["tasks"]["Row"]): Task => {
+export const mapSupabaseTask = (task: SupabaseTask): Task => {
   return {
     id: task.id,
     title: task.title,
@@ -345,7 +351,7 @@ export const fetchTasks = async (): Promise<Task[]> => {
     return [];
   }
 
-  return data.map(mapSupabaseTask);
+  return data.map(task => mapSupabaseTask(task as SupabaseTask));
 };
 
 export const createTask = async (task: {
@@ -367,7 +373,7 @@ export const createTask = async (task: {
     return null;
   }
 
-  return mapSupabaseTask(data);
+  return mapSupabaseTask(data as SupabaseTask);
 };
 
 export const updateTask = async (taskId: string, task: Partial<Task>): Promise<boolean> => {
