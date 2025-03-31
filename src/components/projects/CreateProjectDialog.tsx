@@ -113,8 +113,11 @@ export default function CreateProjectDialog({
     }
     
     try {
+      const tempId = `temp-${Date.now()}`;
+      console.log("Creating temp project with ID:", tempId);
+      
       const tempProject: ProjectWithPayments = {
-        id: String(Date.now()),
+        id: tempId,
         name,
         client,
         totalValue: parseFloat(totalValue),
@@ -152,6 +155,7 @@ export default function CreateProjectDialog({
         paymentDate: isRecurring ? paymentDate : undefined
       };
       
+      console.log("Saving project to Supabase with data:", projectData);
       const savedProject = await createProject(projectData);
       
       if (!savedProject) {
@@ -193,6 +197,11 @@ export default function CreateProjectDialog({
   const getDeveloperName = (id: string): string => {
     const developer = developers.find(dev => dev.id === id);
     return developer ? (developer.name || developer.email) : 'Desenvolvedor';
+  };
+
+  const handlePaymentDateSelect = (date: Date | undefined) => {
+    console.log("Selected payment date:", date);
+    setPaymentDate(date);
   };
 
   return (
@@ -379,13 +388,16 @@ export default function CreateProjectDialog({
                       <Calendar
                         mode="single"
                         selected={paymentDate}
-                        onSelect={setPaymentDate}
+                        onSelect={handlePaymentDateSelect}
                         initialFocus
                         month={new Date()}
-                        disableNavigation
+                        fromMonth={new Date()}
+                        toMonth={new Date(new Date().getFullYear(), new Date().getMonth(), 31)}
+                        fixedWeeks
                         disabled={(date) => {
                           const today = new Date();
-                          return date.getMonth() !== today.getMonth() || date.getFullYear() !== today.getFullYear();
+                          return date.getMonth() !== today.getMonth() || 
+                                 date.getFullYear() !== today.getFullYear();
                         }}
                       />
                     </PopoverContent>

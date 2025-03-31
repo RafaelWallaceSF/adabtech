@@ -29,8 +29,8 @@ export default function Projects() {
         event: '*', 
         schema: 'public', 
         table: 'projects' 
-      }, () => {
-        console.log("Projects table changed, reloading projects...");
+      }, (payload) => {
+        console.log("Project update detected:", payload);
         loadProjects();
       })
       .subscribe();
@@ -55,7 +55,19 @@ export default function Projects() {
         tasks: []
       }));
       
-      setProjects(projectsWithPayments);
+      setProjects(prev => {
+        const tempProjects = prev.filter(p => 
+          typeof p.id === 'string' && p.id.startsWith('temp-')
+        );
+        
+        const filteredTempProjects = tempProjects.filter(temp => 
+          !projectsWithPayments.some(db => 
+            db.name === temp.name && db.client === temp.client
+          )
+        );
+        
+        return [...projectsWithPayments, ...filteredTempProjects];
+      });
     } catch (error) {
       console.error("Error loading projects:", error);
       toast.error("Erro ao carregar projetos");
@@ -98,13 +110,12 @@ export default function Projects() {
         )
       );
       
-      const actualProjectId = typeof projectToUpdate.id === 'string' 
-        ? projectToUpdate.id 
-        : String(projectToUpdate.id);
+      if (typeof projectToUpdate.id === 'string' && projectToUpdate.id.startsWith('temp-')) {
+        console.log("This is a temporary project. Not updating in database.");
+        return;
+      }
       
-      console.log(`Using project ID for update: ${actualProjectId}`);
-      
-      const success = await updateProjectStatus(actualProjectId, newStatus);
+      const success = await updateProjectStatus(String(projectToUpdate.id), newStatus);
       
       if (success) {
         toast.success("Status do projeto atualizado");
@@ -133,6 +144,12 @@ export default function Projects() {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
+      if (projectId.startsWith('temp-')) {
+        setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+        toast.success("Projeto excluído com sucesso");
+        return;
+      }
+      
       const success = await deleteProject(projectId);
       
       if (success) {
