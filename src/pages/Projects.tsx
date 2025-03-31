@@ -43,11 +43,13 @@ export default function Projects() {
         .select('*');
 
       if (error) {
+        toast.error("Erro ao carregar usuários");
         console.error("Error fetching users:", error);
       } else {
         setUsers(data as User[]);
       }
     } catch (error) {
+      toast.error("Erro ao carregar usuários");
       console.error("Error fetching users:", error);
     }
   };
@@ -109,10 +111,18 @@ export default function Projects() {
           <h1 className="text-3xl font-bold tracking-tight">Projetos</h1>
           <p className="text-muted-foreground">Gerencie seus projetos com facilidade</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Projeto
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/team'}
+          >
+            Gerenciar Desenvolvedores
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Projeto
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-5 gap-4">

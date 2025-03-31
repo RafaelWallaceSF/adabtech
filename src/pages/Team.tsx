@@ -62,6 +62,7 @@ const Team = () => {
 
   const handleUserCreated = () => {
     fetchTeamMembers();
+    toast.success("Membro adicionado com sucesso!");
   };
 
   const getRoleBadgeStyles = (role: string) => {
@@ -90,6 +91,10 @@ const Team = () => {
     }
   };
 
+  const getDeveloperCount = () => {
+    return teamMembers.filter(member => member.role === 'developer').length;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -105,6 +110,31 @@ const Team = () => {
             Adicionar Membro
           </Button>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Total de Membros</span>
+            <span className="text-2xl font-semibold">{teamMembers.length}</span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Desenvolvedores</span>
+            <span className="text-2xl font-semibold">{getDeveloperCount()}</span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 flex flex-col items-center justify-center">
+            <span className="text-sm text-muted-foreground">Administradores</span>
+            <span className="text-2xl font-semibold">
+              {teamMembers.filter(member => member.role === 'admin').length}
+            </span>
+          </CardContent>
+        </Card>
       </div>
 
       {loading ? (

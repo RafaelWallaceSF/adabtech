@@ -123,6 +123,12 @@ export default function CreateProjectDialog({
     );
   };
 
+  // Helper function to get developer name by ID
+  const getDeveloperName = (id: string): string => {
+    const developer = developers.find(dev => dev.id === id);
+    return developer ? (developer.name || developer.email) : 'Desenvolvedor';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
@@ -249,11 +255,40 @@ export default function CreateProjectDialog({
               </PopoverContent>
             </Popover>
             {developers.length === 0 && !loadingDevelopers && (
-              <p className="text-sm text-amber-600">
-                Nenhum desenvolvedor cadastrado. Vá até a página de Equipe para cadastrar.
-              </p>
+              <div className="text-sm text-amber-600 mt-2">
+                <p>
+                  Nenhum desenvolvedor cadastrado. 
+                  <Button 
+                    variant="link" 
+                    className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
+                    onClick={() => {
+                      onOpenChange(false);
+                      window.location.href = '/team';
+                    }}
+                  >
+                    Vá até a página de Equipe
+                  </Button> 
+                  para cadastrar desenvolvedores.
+                </p>
+              </div>
             )}
           </div>
+          
+          {selectedTeamMembers.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {selectedTeamMembers.map(id => (
+                <Badge 
+                  key={id} 
+                  variant="secondary"
+                  className="flex items-center gap-1 cursor-pointer"
+                  onClick={() => toggleTeamMember(id)}
+                >
+                  {getDeveloperName(id)}
+                  <span className="text-xs ml-1">×</span>
+                </Badge>
+              ))}
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
