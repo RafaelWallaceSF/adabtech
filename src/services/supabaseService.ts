@@ -2,13 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
 
-// Adiciona o tipo payment_date que está faltando
 type ProjectWithPaymentDate = Database["public"]["Tables"]["projects"]["Row"] & { 
   payment_date?: string | null,
   developer_shares?: Record<string, number> | null
 };
 
-// Convert Supabase project data to our application Project type
 export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => {
   return {
     id: project.id,
@@ -31,7 +29,6 @@ export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => 
   };
 };
 
-// Convert Supabase payment data to our application Payment type
 export const mapSupabasePayment = (payment: Database["public"]["Tables"]["payments"]["Row"]): Payment => {
   return {
     id: payment.id,
@@ -44,14 +41,12 @@ export const mapSupabasePayment = (payment: Database["public"]["Tables"]["paymen
   };
 };
 
-// Updated Task type in Supabase
 type SupabaseTask = Database["public"]["Tables"]["tasks"]["Row"] & {
   description?: string | null;
   due_date?: string | null;
   assigned_to?: string | null;
 };
 
-// Convert Supabase task data to our application Task type
 export const mapSupabaseTask = (task: SupabaseTask): Task => {
   return {
     id: task.id,
@@ -65,7 +60,6 @@ export const mapSupabaseTask = (task: SupabaseTask): Task => {
   };
 };
 
-// Convert Supabase profile data to our application User type
 export const mapSupabaseUser = (profile: Database["public"]["Tables"]["profiles"]["Row"]): User => {
   return {
     id: profile.id,
@@ -76,18 +70,15 @@ export const mapSupabaseUser = (profile: Database["public"]["Tables"]["profiles"
   };
 };
 
-// Update project status
 export const updateProjectStatus = async (projectId: string, status: ProjectStatus): Promise<boolean> => {
   console.log(`Updating project status in database: Project ID ${projectId}, new status: ${status}`);
   
   try {
-    // Skip database update for temporary projects (those with IDs starting with "temp-")
     if (projectId.startsWith('temp-')) {
       console.log(`Project ID ${projectId} is temporary. Skipping database update.`);
       return true;
     }
     
-    // For permanent projects, update in Supabase
     const { error } = await supabase
       .from("projects")
       .update({ status })
@@ -105,7 +96,6 @@ export const updateProjectStatus = async (projectId: string, status: ProjectStat
   }
 };
 
-// Update project
 export const updateProject = async (
   projectId: string, 
   updates: {
@@ -123,19 +113,16 @@ export const updateProject = async (
   console.log(`Updating project in database: Project ID ${projectId}`, updates);
   
   try {
-    // Skip database update for temporary projects (those with IDs starting with "temp-")
     if (projectId.startsWith('temp-')) {
       console.log(`Project ID ${projectId} is temporary. Skipping database update.`);
       return true;
     }
     
-    // Convert deadline to ISO string if it exists
     const updatedValues = { 
       ...updates,
       deadline: updates.deadline ? updates.deadline.toISOString() : undefined
     };
     
-    // For permanent projects, update in Supabase
     const { error } = await supabase
       .from("projects")
       .update(updatedValues)
@@ -153,7 +140,6 @@ export const updateProject = async (
   }
 };
 
-// Fetch all projects
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data: projectsData, error: projectsError } = await supabase
     .from("projects")
@@ -167,7 +153,6 @@ export const fetchProjects = async (): Promise<Project[]> => {
   return projectsData.map(project => mapSupabaseProject(project as ProjectWithPaymentDate));
 };
 
-// Fetch a project with its payments and tasks
 export const fetchProjectWithDetails = async (projectId: string) => {
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
@@ -182,7 +167,6 @@ export const fetchProjectWithDetails = async (projectId: string) => {
 
   const project = mapSupabaseProject(projectData as ProjectWithPaymentDate);
 
-  // Fetch payments for the project
   const { data: paymentsData, error: paymentsError } = await supabase
     .from("payments")
     .select("*")
@@ -195,7 +179,6 @@ export const fetchProjectWithDetails = async (projectId: string) => {
 
   const payments = paymentsData.map(mapSupabasePayment);
 
-  // Fetch tasks for the project
   const { data: tasksData, error: tasksError } = await supabase
     .from("tasks")
     .select("*")
@@ -208,7 +191,6 @@ export const fetchProjectWithDetails = async (projectId: string) => {
 
   const tasks = tasksData.map(mapSupabaseTask);
 
-  // Calculate paid amount
   const paidAmount = payments
     .filter(payment => payment.status === PaymentStatus.PAID)
     .reduce((sum, payment) => sum + payment.amount, 0);
@@ -222,7 +204,6 @@ export const fetchProjectWithDetails = async (projectId: string) => {
   };
 };
 
-// Create a new project
 export const createProject = async (project: Omit<Project, "id" | "createdAt">): Promise<Project | null> => {
   const { data, error } = await supabase
     .from("projects")
@@ -254,7 +235,6 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
   return mapSupabaseProject(data as ProjectWithPaymentDate);
 };
 
-// Delete a project
 export const deleteProject = async (projectId: string): Promise<boolean> => {
   const { error } = await supabase
     .from("projects")
@@ -269,7 +249,6 @@ export const deleteProject = async (projectId: string): Promise<boolean> => {
   return true;
 };
 
-// Create a new payment
 export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payment | null> => {
   const { data, error } = await supabase
     .from("payments")
@@ -292,7 +271,6 @@ export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payme
   return mapSupabasePayment(data);
 };
 
-// Mark a payment as paid
 export const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
   const { error } = await supabase
     .from("payments")
@@ -310,7 +288,6 @@ export const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => 
   return true;
 };
 
-// Fetch user profiles
 export const fetchUsers = async (): Promise<User[]> => {
   const { data, error } = await supabase
     .from("profiles")
@@ -324,7 +301,6 @@ export const fetchUsers = async (): Promise<User[]> => {
   return data.map(mapSupabaseUser);
 };
 
-// Fetch clients
 export const fetchClients = async () => {
   const { data, error } = await supabase
     .from("clients")
@@ -339,7 +315,6 @@ export const fetchClients = async () => {
   return data;
 };
 
-// Tasks related functions
 export const fetchTasks = async (): Promise<Task[]> => {
   const { data, error } = await supabase
     .from("tasks")
@@ -377,7 +352,6 @@ export const createTask = async (task: {
 };
 
 export const updateTask = async (taskId: string, task: Partial<Task>): Promise<boolean> => {
-  // Skip database update for temporary tasks
   if (taskId.startsWith('temp-')) {
     return true;
   }
@@ -403,7 +377,6 @@ export const updateTask = async (taskId: string, task: Partial<Task>): Promise<b
 };
 
 export const updateTaskStatus = async (taskId: string, completed: boolean): Promise<boolean> => {
-  // Skip database update for temporary tasks
   if (taskId.startsWith('temp-')) {
     return true;
   }
@@ -422,7 +395,6 @@ export const updateTaskStatus = async (taskId: string, completed: boolean): Prom
 };
 
 export const deleteTask = async (taskId: string): Promise<boolean> => {
-  // Skip database update for temporary tasks
   if (taskId.startsWith('temp-')) {
     return true;
   }
@@ -434,6 +406,24 @@ export const deleteTask = async (taskId: string): Promise<boolean> => {
 
   if (error) {
     console.error("Error deleting task:", error);
+    return false;
+  }
+
+  return true;
+};
+
+export const deletePayment = async (paymentId: string): Promise<boolean> => {
+  if (paymentId.startsWith('temp-')) {
+    return true;
+  }
+
+  const { error } = await supabase
+    .from("payments")
+    .delete()
+    .eq("id", paymentId);
+
+  if (error) {
+    console.error("Error deleting payment:", error);
     return false;
   }
 

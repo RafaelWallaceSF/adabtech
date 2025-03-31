@@ -22,17 +22,22 @@ import {
   Plus,
   ArrowUp,
   ArrowDown,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { CreatePaymentDialog } from "@/components/payments/CreatePaymentDialog";
+import DeleteConfirmDialog from "@/components/ui/delete-confirm-dialog";
+import { deletePayment } from "@/services/supabaseService";
 
 export default function Payments() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment & { projectName: string, client: string } | null>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -95,6 +100,66 @@ export default function Payments() {
       
       return newProjects;
     });
+  };
+
+  // Function to handle payment deletion
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    
+    try {
+      const success = await deletePayment(paymentToDelete.id);
+      
+      if (success) {
+        setProjects(prevProjects => {
+          return prevProjects.map(project => {
+            if (project.id === paymentToDelete.projectId) {
+              const updatedPayments = project.payments.filter(
+                payment => payment.id !== paymentToDelete.id
+              );
+              
+              const paidAmount = updatedPayments
+                .filter(payment => payment.status === PaymentStatus.PAID)
+                .reduce((sum, payment) => sum + payment.amount, 0);
+              
+              return {
+                ...project,
+                payments: updatedPayments,
+                paidAmount,
+                remainingAmount: project.totalValue - paidAmount
+              };
+            }
+            return project;
+          });
+        });
+        
+        toast({
+          title: "Pagamento excluído",
+          description: "O pagamento foi excluído com sucesso.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o pagamento.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao excluir o pagamento.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  // Function to open delete confirmation dialog
+  const confirmDeletePayment = (payment: Payment & { projectName: string, client: string }) => {
+    setPaymentToDelete(payment);
+    setIsDeleteDialogOpen(true);
   };
 
   // Extract all payments from all projects
@@ -187,19 +252,30 @@ export default function Payments() {
           currency: 'BRL' 
         }).format(payment.amount)}
       </TableCell>
-      {includeActionButton && payment.status !== PaymentStatus.PAID && (
-        <TableCell>
+      <TableCell>
+        <div className="flex gap-2 justify-end">
+          {includeActionButton && payment.status !== PaymentStatus.PAID && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex items-center gap-1" 
+              onClick={() => markAsPaid(payment.id)}
+            >
+              <CheckCircle className="h-3 w-3" />
+              Confirmar
+            </Button>
+          )}
           <Button 
             size="sm" 
             variant="outline" 
-            className="flex items-center gap-1" 
-            onClick={() => markAsPaid(payment.id)}
+            className="flex items-center gap-1 text-destructive hover:text-destructive" 
+            onClick={() => confirmDeletePayment(payment)}
           >
-            <CheckCircle className="h-3 w-3" />
-            Confirmar Pagamento
+            <Trash2 className="h-3 w-3" />
+            Excluir
           </Button>
-        </TableCell>
-      )}
+        </div>
+      </TableCell>
     </TableRow>
   );
 
@@ -319,7 +395,7 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Ação</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -354,7 +430,7 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Ação</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -389,6 +465,7 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Data de Pagamento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -396,12 +473,12 @@ export default function Payments() {
                   paidPayments.map(payment => (
                     <PaymentRow 
                       key={payment.id} 
-                      payment={payment} 
+                      payment={payment}
                     />
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                       Nenhum pagamento pago encontrado.
                     </TableCell>
                   </TableRow>
@@ -422,7 +499,7 @@ export default function Payments() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Ação</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -446,6 +523,16 @@ export default function Payments() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Excluir pagamento"
+        description={`Tem certeza que deseja excluir o pagamento ${paymentToDelete?.description || ''} no valor de ${
+          paymentToDelete ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(paymentToDelete.amount) : ''
+        }? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDeletePayment}
+      />
     </div>
   );
 }
