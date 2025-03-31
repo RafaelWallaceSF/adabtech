@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, CreditCard, DollarSign, Loader2, Percent, Repeat } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -33,6 +33,8 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -57,6 +59,13 @@ export default function CreateProjectDialog({
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
   const [developers, setDevelopers] = useState<User[]>([]);
   const [loadingDevelopers, setLoadingDevelopers] = useState(false);
+  
+  // New payment option states
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [hasImplementationFee, setHasImplementationFee] = useState(false);
+  const [implementationFee, setImplementationFee] = useState("");
+  const [isInstallment, setIsInstallment] = useState(false);
+  const [installmentCount, setInstallmentCount] = useState("1");
 
   useEffect(() => {
     if (open) {
@@ -106,7 +115,12 @@ export default function CreateProjectDialog({
       createdAt: new Date(),
       payments: [],
       paidAmount: 0,
-      remainingAmount: parseFloat(totalValue)
+      remainingAmount: parseFloat(totalValue),
+      isRecurring,
+      hasImplementationFee,
+      implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
+      isInstallment,
+      installmentCount: isInstallment ? parseInt(installmentCount) : undefined
     };
     
     onSubmit(newProject);
@@ -120,6 +134,11 @@ export default function CreateProjectDialog({
     setDescription("");
     setDeadline(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     setSelectedTeamMembers([]);
+    setIsRecurring(false);
+    setHasImplementationFee(false);
+    setImplementationFee("");
+    setIsInstallment(false);
+    setInstallmentCount("1");
   };
   
   const toggleTeamMember = (userId: string) => {
@@ -208,6 +227,94 @@ export default function CreateProjectDialog({
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+          
+          {/* New payment options section */}
+          <div className="space-y-4 border rounded-lg p-4">
+            <h3 className="font-semibold">Opções de Pagamento</h3>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="isRecurring" className="cursor-pointer">
+                  Cobrança Mensal Recorrente
+                </Label>
+              </div>
+              <Switch 
+                id="isRecurring" 
+                checked={isRecurring} 
+                onCheckedChange={setIsRecurring} 
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="hasImplementationFee" className="cursor-pointer">
+                  Possui Taxa de Implantação
+                </Label>
+              </div>
+              <Switch 
+                id="hasImplementationFee" 
+                checked={hasImplementationFee} 
+                onCheckedChange={setHasImplementationFee} 
+              />
+            </div>
+            
+            {hasImplementationFee && (
+              <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="implementationFee">Valor da Implantação (R$)</Label>
+                  <Input
+                    id="implementationFee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={implementationFee}
+                    onChange={(e) => setImplementationFee(e.target.value)}
+                    placeholder="0,00"
+                    required={hasImplementationFee}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="isInstallment" className="cursor-pointer">
+                  Pagamento Parcelado
+                </Label>
+              </div>
+              <Switch 
+                id="isInstallment" 
+                checked={isInstallment} 
+                onCheckedChange={setIsInstallment} 
+              />
+            </div>
+            
+            {isInstallment && (
+              <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="installmentCount">Número de Parcelas</Label>
+                  <Select
+                    value={installmentCount}
+                    onValueChange={setInstallmentCount}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o número de parcelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num}x
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -14,7 +13,12 @@ export const mapSupabaseProject = (project: Database["public"]["Tables"]["projec
     teamMembers: project.team_members || [],
     deadline: new Date(project.deadline || Date.now()),
     description: project.description || "",
-    createdAt: new Date(project.created_at)
+    createdAt: new Date(project.created_at),
+    isRecurring: project.is_recurring || false,
+    hasImplementationFee: project.has_implementation_fee || false,
+    implementationFee: project.implementation_fee ? Number(project.implementation_fee) : undefined,
+    isInstallment: project.is_installment || false,
+    installmentCount: project.installment_count || undefined
   };
 };
 
@@ -147,7 +151,12 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       status: project.status,
       team_members: project.teamMembers,
       deadline: project.deadline.toISOString(),
-      description: project.description
+      description: project.description,
+      is_recurring: project.isRecurring,
+      has_implementation_fee: project.hasImplementationFee,
+      implementation_fee: project.implementationFee,
+      is_installment: project.isInstallment,
+      installment_count: project.installmentCount
     })
     .select()
     .single();

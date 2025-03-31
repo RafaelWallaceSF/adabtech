@@ -4,7 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectWithPayments, PaymentStatus, ProjectStatus, Task } from "@/types";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, DollarSign, Users, FileText, CheckCircle, AlertCircle, Clock, List, Plus, Square, CheckSquare, Trash2 } from "lucide-react";
+import { 
+  CalendarDays, DollarSign, Users, FileText, CheckCircle, 
+  AlertCircle, Clock, List, Plus, Square, CheckSquare, 
+  Trash2, CreditCard, Percent, Repeat 
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getProjectTeamMembers } from "@/data/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -95,6 +99,11 @@ export default function ProjectDetailDialog({
     setTasks(tasks.filter(task => task.id !== taskId));
     toast.success("Tarefa removida com sucesso");
   };
+
+  const monthlyValue = project.isRecurring ? project.totalValue : undefined;
+  const installmentValue = project.isInstallment && project.installmentCount 
+    ? (project.totalValue / project.installmentCount) 
+    : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

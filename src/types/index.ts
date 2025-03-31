@@ -1,4 +1,3 @@
-
 export enum ProjectStatus {
   NEW = "new",
   IN_PROGRESS = "in_progress",
@@ -43,6 +42,11 @@ export interface Project {
   deadline: Date;
   description: string;
   createdAt: Date;
+  isRecurring?: boolean;
+  hasImplementationFee?: boolean;
+  implementationFee?: number;
+  isInstallment?: boolean;
+  installmentCount?: number;
 }
 
 export interface Payment {

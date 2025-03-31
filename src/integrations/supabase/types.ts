@@ -80,7 +80,12 @@ export type Database = {
           created_at: string
           deadline: string | null
           description: string | null
+          has_implementation_fee: boolean | null
           id: string
+          implementation_fee: number | null
+          installment_count: number | null
+          is_installment: boolean | null
+          is_recurring: boolean | null
           name: string
           status: string
           team_members: string[] | null
@@ -91,7 +96,12 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string | null
+          has_implementation_fee?: boolean | null
           id?: string
+          implementation_fee?: number | null
+          installment_count?: number | null
+          is_installment?: boolean | null
+          is_recurring?: boolean | null
           name: string
           status: string
           team_members?: string[] | null
@@ -102,7 +112,12 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string | null
+          has_implementation_fee?: boolean | null
           id?: string
+          implementation_fee?: number | null
+          installment_count?: number | null
+          is_installment?: boolean | null
+          is_recurring?: boolean | null
           name?: string
           status?: string
           team_members?: string[] | null
