@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -142,6 +143,15 @@ export default function Projects() {
     setIsCreateOpen(false);
   };
 
+  const handleProjectUpdate = (updatedProject: ProjectWithPayments) => {
+    setProjects(prev => 
+      prev.map(project => 
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+    setSelectedProject(updatedProject);
+  };
+
   const handleDeleteProject = async (projectId: string) => {
     try {
       if (projectId.startsWith('temp-')) {
@@ -201,7 +211,7 @@ export default function Projects() {
             Gerenciar Desenvolvedores
           </Button>
           <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
         </div>
@@ -321,6 +331,7 @@ export default function Projects() {
           project={selectedProject} 
           open={isDetailOpen}
           onOpenChange={setIsDetailOpen}
+          onProjectUpdate={handleProjectUpdate}
         />
       )}
 
