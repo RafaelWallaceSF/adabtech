@@ -32,8 +32,12 @@ export default function KanbanColumn({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const projectId = e.dataTransfer.getData("projectId");
-    if (projectId) {
+    
+    if (projectId && projectId.trim() !== '') {
+      console.log("Dropping project with ID:", projectId, "to status:", status);
       onDrop(projectId, status);
+    } else {
+      console.error("Invalid or empty project ID in drop event");
     }
   };
   

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
@@ -127,6 +128,13 @@ export const fetchProjectWithDetails = async (projectId: string) => {
 
 // Update a project's status
 export const updateProjectStatus = async (projectId: string, status: ProjectStatus): Promise<boolean> => {
+  // Check if projectId is a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(projectId)) {
+    console.error(`Invalid UUID format for project ID: ${projectId}`);
+    return false;
+  }
+
   const { error } = await supabase
     .from("projects")
     .update({ status })

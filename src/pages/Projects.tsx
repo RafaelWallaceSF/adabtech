@@ -67,7 +67,11 @@ export default function Projects() {
   };
 
   const handleDrop = async (projectId: string, newStatus: ProjectStatus) => {
+    const originalProjects = [...projects];
+    
     try {
+      console.log(`Updating project ${projectId} to status ${newStatus}`);
+      
       setProjects(prevProjects => 
         prevProjects.map(project => 
           project.id === projectId 
@@ -76,18 +80,26 @@ export default function Projects() {
         )
       );
       
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(projectId)) {
+        console.error(`Invalid project ID format: ${projectId}`);
+        toast.error("ID do projeto em formato inválido");
+        setProjects(originalProjects);
+        return;
+      }
+      
       const success = await updateProjectStatus(projectId, newStatus);
       
       if (success) {
         toast.success("Status do projeto atualizado");
       } else {
         toast.error("Erro ao atualizar status do projeto");
-        loadProjects();
+        setProjects(originalProjects);
       }
     } catch (error) {
       console.error("Error updating project status:", error);
       toast.error("Erro ao atualizar status do projeto");
-      loadProjects();
+      setProjects(originalProjects);
     }
   };
 
