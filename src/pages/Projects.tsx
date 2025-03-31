@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -68,10 +69,21 @@ export default function Projects() {
 
   const handleDrop = async (projectId: string, newStatus: ProjectStatus) => {
     const originalProjects = [...projects];
+    console.log(`Received drop event for project ${projectId} to status ${newStatus}`);
     
     try {
-      console.log(`Updating project ${projectId} to status ${newStatus}`);
+      // Find the project in our projects array
+      const projectToUpdate = projects.find(p => p.id === projectId);
       
+      if (!projectToUpdate) {
+        console.error(`Project with ID ${projectId} not found in state`);
+        toast.error("Projeto não encontrado");
+        return;
+      }
+      
+      console.log(`Found project to update:`, projectToUpdate);
+      
+      // Optimistically update the UI
       setProjects(prevProjects => 
         prevProjects.map(project => 
           project.id === projectId 
@@ -80,9 +92,10 @@ export default function Projects() {
         )
       );
       
+      // Validate UUID format before sending to the server
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(projectId)) {
-        console.error(`Invalid project ID format: ${projectId}`);
+        console.error(`Invalid UUID format for project ID: ${projectId}`);
         toast.error("ID do projeto em formato inválido");
         setProjects(originalProjects);
         return;
@@ -93,6 +106,7 @@ export default function Projects() {
       if (success) {
         toast.success("Status do projeto atualizado");
       } else {
+        console.error("Failed to update project status in the database");
         toast.error("Erro ao atualizar status do projeto");
         setProjects(originalProjects);
       }

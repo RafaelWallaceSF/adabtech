@@ -40,7 +40,9 @@ export default function ProjectCard({ project, teamMembers, onClick }: ProjectCa
   };
   
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    // Ensure we're sending the actual UUID instead of any timestamp
     e.dataTransfer.setData('projectId', project.id);
+    console.log("Drag started for project ID:", project.id);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
