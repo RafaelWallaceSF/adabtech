@@ -390,20 +390,14 @@ export default function CreateProjectDialog({
                         selected={paymentDate}
                         onSelect={handlePaymentDateSelect}
                         initialFocus
-                        month={new Date()}
-                        fromMonth={new Date()}
-                        toMonth={new Date(new Date().getFullYear(), new Date().getMonth(), 31)}
-                        fixedWeeks
                         disabled={(date) => {
-                          const today = new Date();
-                          return date.getMonth() !== today.getMonth() || 
-                                 date.getFullYear() !== today.getFullYear();
+                          return date.getDate() > 28;
                         }}
                       />
                     </PopoverContent>
                   </Popover>
                   <p className="text-xs text-muted-foreground">
-                    Dia do mês em que o pagamento recorrente é devido.
+                    Selecione o dia do mês em que o pagamento recorrente será devido (de 1 a 28).
                   </p>
                 </div>
               )}
