@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getProjectsWithPayments, getProjectTeamMembers, users } from "@/data/mockData";
-import { ProjectStatus, ProjectWithPayments, User, Task } from "@/types";
+import { getProjectsWithPayments } from "@/data/mockData";
+import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { toast } from "sonner";
 import KanbanColumn from "@/components/projects/KanbanColumn";
 import ProjectDetailDialog from "@/components/projects/ProjectDetailDialog";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -15,6 +16,7 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<ProjectWithPayments | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -30,7 +32,25 @@ export default function Projects() {
       setProjects(projectsData);
       setLoading(false);
     }, 500);
+
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (error) {
+        console.error("Error fetching users:", error);
+      } else {
+        setUsers(data as User[]);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
   const handleDrop = (projectId: string, newStatus: ProjectStatus) => {
     setProjects(prevProjects => 

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -23,6 +23,8 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -46,12 +48,43 @@ export default function CreateProjectDialog({
   );
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
   const [teamMemberOpen, setTeamMemberOpen] = useState(false);
+  const [developers, setDevelopers] = useState<User[]>([]);
+  const [loadingDevelopers, setLoadingDevelopers] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchDevelopers();
+    }
+  }, [open]);
+
+  const fetchDevelopers = async () => {
+    setLoadingDevelopers(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'developer');
+
+      if (error) {
+        toast.error("Erro ao carregar desenvolvedores");
+        console.error("Error fetching developers:", error);
+      } else {
+        setDevelopers(data as User[]);
+      }
+    } catch (error) {
+      toast.error("Erro ao carregar desenvolvedores");
+      console.error("Error fetching developers:", error);
+    } finally {
+      setLoadingDevelopers(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !client || !totalValue || !deadline) {
-      return; // Form validation would go here
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
     }
     
     const newProject: ProjectWithPayments = {
@@ -89,8 +122,6 @@ export default function CreateProjectDialog({
         : [...prev, userId]
     );
   };
-  
-  const developers = users.filter(user => user.role === 'developer');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,18 +211,26 @@ export default function CreateProjectDialog({
                   {selectedTeamMembers.length > 0
                     ? `${selectedTeamMembers.length} desenvolvedor(es) selecionado(s)`
                     : "Selecione desenvolvedores"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  {loadingDevelopers ? (
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0 pointer-events-auto">
                 <Command>
                   <CommandInput placeholder="Buscar desenvolvedor..." />
-                  <CommandEmpty>Nenhum desenvolvedor encontrado.</CommandEmpty>
+                  <CommandEmpty>
+                    {loadingDevelopers 
+                      ? "Carregando..." 
+                      : "Nenhum desenvolvedor encontrado. Cadastre desenvolvedores na tela Equipe."}
+                  </CommandEmpty>
                   <CommandGroup>
                     {developers.map((developer) => (
                       <CommandItem
                         key={developer.id}
-                        value={developer.name}
+                        value={developer.name || developer.email}
                         onSelect={() => toggleTeamMember(developer.id)}
                       >
                         <CheckIcon
@@ -202,13 +241,18 @@ export default function CreateProjectDialog({
                               : "opacity-0"
                           )}
                         />
-                        {developer.name}
+                        {developer.name || developer.email}
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
             </Popover>
+            {developers.length === 0 && !loadingDevelopers && (
+              <p className="text-sm text-amber-600">
+                Nenhum desenvolvedor cadastrado. Vá até a página de Equipe para cadastrar.
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">

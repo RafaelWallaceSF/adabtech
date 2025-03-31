@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   Dialog,
@@ -24,6 +25,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserRole } from "@/types";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 const formSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
@@ -37,9 +46,10 @@ type FormValues = z.infer<typeof formSchema>;
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUserCreated?: () => void;
 }
 
-export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
+export function CreateUserDialog({ open, onOpenChange, onUserCreated }: CreateUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormValues>({
@@ -56,17 +66,43 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     setIsSubmitting(true);
     
     try {
-      // Aqui seria a chamada para uma API para salvar o usuário
-      console.log("Dados do usuário:", data);
+      // Primeiro, cria o usuário no Authentication
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            role: data.role,
+          },
+        },
+      });
       
-      // Simulando uma chamada de API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (signUpError) {
+        throw signUpError;
+      }
+      
+      // Atualiza o perfil do usuário
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+      
+      if (userError) {
+        console.log("Usuário será criado pelo trigger automaticamente.");
+      }
       
       toast.success("Usuário cadastrado com sucesso!");
+      
+      if (onUserCreated) {
+        onUserCreated();
+      }
+      
       onOpenChange(false);
       form.reset();
-    } catch (error) {
-      toast.error("Erro ao cadastrar usuário.");
+    } catch (error: any) {
+      toast.error("Erro ao cadastrar usuário: " + (error.message || "Erro desconhecido"));
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -77,83 +113,96 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+          <DialogTitle>Adicionar Novo Membro</DialogTitle>
           <DialogDescription>
             Preencha os dados para adicionar um novo membro à equipe.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nome</Label>
-              <Input
-                id="name"
-                placeholder="Nome completo"
-                {...form.register("name")}
-              />
-              {form.formState.errors.name && (
-                <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome completo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
+            />
             
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@exemplo.com"
-                {...form.register("email")}
-              />
-              {form.formState.errors.email && (
-                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="email@exemplo.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
+            />
             
-            <div className="grid gap-2">
-              <Label htmlFor="role">Nível</Label>
-              <Select
-                defaultValue="developer"
-                onValueChange={(value) => form.setValue("role", value)}
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Função</FormLabel>
+                  <Select
+                    defaultValue={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a função" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="developer">Desenvolvedor</SelectItem>
+                      <SelectItem value="finance">Financeiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="******" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o nível" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="developer">Desenvolvedor</SelectItem>
-                  <SelectItem value="finance">Financeiro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="******"
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </form>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
