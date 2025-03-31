@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -60,7 +60,6 @@ export default function CreateProjectDialog({
   const [developers, setDevelopers] = useState<User[]>([]);
   const [loadingDevelopers, setLoadingDevelopers] = useState(false);
   
-  // New payment option states
   const [isRecurring, setIsRecurring] = useState(false);
   const [hasImplementationFee, setHasImplementationFee] = useState(false);
   const [implementationFee, setImplementationFee] = useState("");
@@ -161,248 +160,249 @@ export default function CreateProjectDialog({
           <DialogTitle className="text-xl">Novo Projeto</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome do Projeto</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome do projeto"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="client">Cliente</Label>
-              <Input
-                id="client"
-                value={client}
-                onChange={(e) => setClient(e.target.value)}
-                placeholder="Nome do cliente"
-                required
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="totalValue">Valor Total (R$)</Label>
-              <Input
-                id="totalValue"
-                type="number"
-                min="0"
-                step="0.01"
-                value={totalValue}
-                onChange={(e) => setTotalValue(e.target.value)}
-                placeholder="0,00"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Prazo</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !deadline && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "dd/MM/yyyy") : <span>Selecione uma data</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={deadline}
-                    onSelect={setDeadline}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          
-          {/* New payment options section */}
-          <div className="space-y-4 border rounded-lg p-4">
-            <h3 className="font-semibold">Opções de Pagamento</h3>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Repeat className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="isRecurring" className="cursor-pointer">
-                  Cobrança Mensal Recorrente
-                </Label>
+        <ScrollArea className="max-h-[70vh]">
+          <form onSubmit={handleSubmit} className="space-y-4 px-1 pb-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome do Projeto</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nome do projeto"
+                  required
+                />
               </div>
-              <Switch 
-                id="isRecurring" 
-                checked={isRecurring} 
-                onCheckedChange={setIsRecurring} 
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="hasImplementationFee" className="cursor-pointer">
-                  Possui Taxa de Implantação
-                </Label>
+              
+              <div className="space-y-2">
+                <Label htmlFor="client">Cliente</Label>
+                <Input
+                  id="client"
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  placeholder="Nome do cliente"
+                  required
+                />
               </div>
-              <Switch 
-                id="hasImplementationFee" 
-                checked={hasImplementationFee} 
-                onCheckedChange={setHasImplementationFee} 
-              />
             </div>
             
-            {hasImplementationFee && (
-              <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="implementationFee">Valor da Implantação (R$)</Label>
-                  <Input
-                    id="implementationFee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={implementationFee}
-                    onChange={(e) => setImplementationFee(e.target.value)}
-                    placeholder="0,00"
-                    required={hasImplementationFee}
-                  />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="totalValue">Valor Total (R$)</Label>
+                <Input
+                  id="totalValue"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={totalValue}
+                  onChange={(e) => setTotalValue(e.target.value)}
+                  placeholder="0,00"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Prazo</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !deadline && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {deadline ? format(deadline, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={deadline}
+                      onSelect={setDeadline}
+                      initialFocus
+                      disabled={(date) => date < new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <div className="space-y-4 border rounded-lg p-4">
+              <h3 className="font-semibold">Opções de Pagamento</h3>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Repeat className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="isRecurring" className="cursor-pointer">
+                    Cobrança Mensal Recorrente
+                  </Label>
                 </div>
+                <Switch 
+                  id="isRecurring" 
+                  checked={isRecurring} 
+                  onCheckedChange={setIsRecurring} 
+                />
               </div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="isInstallment" className="cursor-pointer">
-                  Pagamento Parcelado
-                </Label>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="hasImplementationFee" className="cursor-pointer">
+                    Possui Taxa de Implantação
+                  </Label>
+                </div>
+                <Switch 
+                  id="hasImplementationFee" 
+                  checked={hasImplementationFee} 
+                  onCheckedChange={setHasImplementationFee} 
+                />
               </div>
-              <Switch 
-                id="isInstallment" 
-                checked={isInstallment} 
-                onCheckedChange={setIsInstallment} 
-              />
+              
+              {hasImplementationFee && (
+                <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="implementationFee">Valor da Implantação (R$)</Label>
+                    <Input
+                      id="implementationFee"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={implementationFee}
+                      onChange={(e) => setImplementationFee(e.target.value)}
+                      placeholder="0,00"
+                      required={hasImplementationFee}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="isInstallment" className="cursor-pointer">
+                    Pagamento Parcelado
+                  </Label>
+                </div>
+                <Switch 
+                  id="isInstallment" 
+                  checked={isInstallment} 
+                  onCheckedChange={setIsInstallment} 
+                />
+              </div>
+              
+              {isInstallment && (
+                <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="installmentCount">Número de Parcelas</Label>
+                    <Select
+                      value={installmentCount}
+                      onValueChange={setInstallmentCount}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o número de parcelas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num}x
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
             
-            {isInstallment && (
-              <div className="grid grid-cols-2 gap-4 pl-6 mt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="installmentCount">Número de Parcelas</Label>
-                  <Select
-                    value={installmentCount}
-                    onValueChange={setInstallmentCount}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o número de parcelas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num}x
+            <div className="space-y-2">
+              <Label>Desenvolvedores</Label>
+              <div className="space-y-4">
+                <Select onValueChange={(value) => toggleTeamMember(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione um desenvolvedor para adicionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingDevelopers ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span>Carregando...</span>
+                      </div>
+                    ) : developers.length > 0 ? (
+                      developers.map((dev) => (
+                        <SelectItem 
+                          key={dev.id} 
+                          value={dev.id}
+                          disabled={selectedTeamMembers.includes(dev.id)}
+                        >
+                          {dev.name || dev.email}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Desenvolvedores</Label>
-            <div className="space-y-4">
-              <Select onValueChange={(value) => toggleTeamMember(value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um desenvolvedor para adicionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingDevelopers ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span>Carregando...</span>
-                    </div>
-                  ) : developers.length > 0 ? (
-                    developers.map((dev) => (
-                      <SelectItem 
-                        key={dev.id} 
-                        value={dev.id}
-                        disabled={selectedTeamMembers.includes(dev.id)}
-                      >
-                        {dev.name || dev.email}
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        Nenhum desenvolvedor encontrado
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="empty" disabled>
-                      Nenhum desenvolvedor encontrado
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              
-              {developers.length === 0 && !loadingDevelopers && (
-                <div className="text-sm text-amber-600 mt-2">
-                  <p>
-                    Nenhum desenvolvedor cadastrado. 
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
-                      onClick={() => {
-                        onOpenChange(false);
-                        window.location.href = '/team';
-                      }}
-                    >
-                      Vá até a página de Equipe
-                    </Button> 
-                    para cadastrar desenvolvedores.
-                  </p>
-                </div>
-              )}
-              
-              {selectedTeamMembers.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedTeamMembers.map(id => (
-                    <Badge 
-                      key={id} 
-                      variant="secondary"
-                      className="flex items-center gap-1 cursor-pointer"
-                      onClick={() => toggleTeamMember(id)}
-                    >
-                      {getDeveloperName(id)}
-                      <span className="text-xs ml-1">×</span>
-                    </Badge>
-                  ))}
-                </div>
-              )}
+                    )}
+                  </SelectContent>
+                </Select>
+                
+                {developers.length === 0 && !loadingDevelopers && (
+                  <div className="text-sm text-amber-600 mt-2">
+                    <p>
+                      Nenhum desenvolvedor cadastrado. 
+                      <Button 
+                        variant="link" 
+                        className="h-auto p-0 text-amber-600 font-semibold hover:text-amber-800"
+                        onClick={() => {
+                          onOpenChange(false);
+                          window.location.href = '/team';
+                        }}
+                      >
+                        Vá até a página de Equipe
+                      </Button> 
+                      para cadastrar desenvolvedores.
+                    </p>
+                  </div>
+                )}
+                
+                {selectedTeamMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedTeamMembers.map(id => (
+                      <Badge 
+                        key={id} 
+                        variant="secondary"
+                        className="flex items-center gap-1 cursor-pointer"
+                        onClick={() => toggleTeamMember(id)}
+                      >
+                        {getDeveloperName(id)}
+                        <span className="text-xs ml-1">×</span>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva o projeto..."
-              rows={4}
-            />
-          </div>
-          
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Criar Projeto</Button>
-          </div>
-        </form>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Descreva o projeto..."
+                rows={4}
+              />
+            </div>
+          </form>
+        </ScrollArea>
+        
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" onClick={handleSubmit}>Criar Projeto</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
