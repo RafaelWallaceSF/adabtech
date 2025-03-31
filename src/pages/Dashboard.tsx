@@ -21,19 +21,40 @@ import {
   AlertCircle,
   CheckCircle
 } from "lucide-react";
-import { getProjectsWithPayments } from "@/data/mockData";
 import { ProjectStatus, ProjectWithPayments, PaymentStatus } from "@/types";
+import { fetchProjects } from "@/services/supabaseService";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading from API
-    setTimeout(() => {
-      setProjects(getProjectsWithPayments());
-      setLoading(false);
-    }, 500);
+    const loadProjects = async () => {
+      setLoading(true);
+      try {
+        console.log("Fetching projects for dashboard...");
+        const projectsData = await fetchProjects();
+        
+        // Convert to ProjectWithPayments format
+        const projectsWithPayments = projectsData.map(project => ({
+          ...project,
+          payments: [],
+          paidAmount: 0, // For now, assume no payments
+          remainingAmount: project.totalValue,
+          tasks: []
+        }));
+        
+        setProjects(projectsWithPayments);
+      } catch (error) {
+        console.error("Error loading projects for dashboard:", error);
+        toast.error("Erro ao carregar projetos para o dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProjects();
   }, []);
 
   // Calculate summary stats
@@ -41,11 +62,11 @@ export default function Dashboard() {
   const activeProjects = projects.filter(p => p.status !== ProjectStatus.ACTIVE).length;
   
   const totalValue = projects.reduce((sum, project) => sum + project.totalValue, 0);
-  const totalPaid = projects.reduce((sum, project) => sum + project.paidAmount, 0);
+  const totalPaid = projects.reduce((sum, project) => sum + (project.paidAmount || 0), 0);
   const totalPending = totalValue - totalPaid;
   
-  const overduePayments = projects.flatMap(p => p.payments).filter(
-    p => p.status === PaymentStatus.OVERDUE
+  const overduePayments = projects.flatMap(p => p.payments || []).filter(
+    p => p?.status === PaymentStatus.OVERDUE
   ).length;
 
   // Data for project status chart
@@ -56,16 +77,28 @@ export default function Dashboard() {
     { name: 'Ativos', value: projects.filter(p => p.status === ProjectStatus.ACTIVE).length }
   ];
 
-  // Data for financial chart
-  const financialData = [
-    { name: 'Jan', value: 12000 },
-    { name: 'Fev', value: 19000 },
-    { name: 'Mar', value: 15000 },
-    { name: 'Abr', value: 18000 },
-    { name: 'Mai', value: 21000 },
-    { name: 'Jun', value: 25000 },
-    { name: 'Jul', value: totalPaid }, // Set current month to actual value
-  ];
+  // Group projects by month for financial chart
+  const currentYear = new Date().getFullYear();
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  
+  // Initialize with all months
+  const financialDataByMonth: {[key: string]: number} = {};
+  monthNames.forEach((month, index) => {
+    financialDataByMonth[month] = 0;
+  });
+  
+  // Sum project values by month (using creation date)
+  projects.forEach(project => {
+    const projectMonth = project.createdAt.getMonth();
+    const monthName = monthNames[projectMonth];
+    financialDataByMonth[monthName] = (financialDataByMonth[monthName] || 0) + project.totalValue;
+  });
+  
+  // Convert to array format for chart
+  const financialData = Object.entries(financialDataByMonth).map(([name, value]) => ({
+    name,
+    value
+  }));
 
   const COLORS = ['#4361ee', '#4cc9f0', '#f72585', '#4ade80'];
 
@@ -151,7 +184,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round((projects.filter(p => p.status === ProjectStatus.ACTIVE).length / totalProjects) * 100)}%
+              {totalProjects > 0 
+                ? Math.round((projects.filter(p => p.status === ProjectStatus.ACTIVE).length / totalProjects) * 100)
+                : 0}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Projetos concluídos
