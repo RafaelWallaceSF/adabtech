@@ -87,6 +87,7 @@ export type Database = {
           is_installment: boolean | null
           is_recurring: boolean | null
           name: string
+          payment_date: string | null
           status: string
           team_members: string[] | null
           total_value: number
@@ -103,6 +104,7 @@ export type Database = {
           is_installment?: boolean | null
           is_recurring?: boolean | null
           name: string
+          payment_date?: string | null
           status: string
           team_members?: string[] | null
           total_value: number
@@ -119,6 +121,7 @@ export type Database = {
           is_installment?: boolean | null
           is_recurring?: boolean | null
           name?: string
+          payment_date?: string | null
           status?: string
           team_members?: string[] | null
           total_value?: number

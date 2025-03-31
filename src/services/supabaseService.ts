@@ -2,8 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/types";
 
+// Adiciona o tipo payment_date que está faltando
+type ProjectWithPaymentDate = Database["public"]["Tables"]["projects"]["Row"] & { 
+  payment_date?: string | null 
+};
+
 // Convert Supabase project data to our application Project type
-export const mapSupabaseProject = (project: Database["public"]["Tables"]["projects"]["Row"]): Project => {
+export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => {
   return {
     id: project.id,
     name: project.name,
@@ -97,7 +102,7 @@ export const fetchProjects = async (): Promise<Project[]> => {
     return [];
   }
 
-  return projectsData.map(mapSupabaseProject);
+  return projectsData.map(project => mapSupabaseProject(project as ProjectWithPaymentDate));
 };
 
 // Fetch a project with its payments and tasks
@@ -113,7 +118,7 @@ export const fetchProjectWithDetails = async (projectId: string) => {
     return null;
   }
 
-  const project = mapSupabaseProject(projectData);
+  const project = mapSupabaseProject(projectData as ProjectWithPaymentDate);
 
   // Fetch payments for the project
   const { data: paymentsData, error: paymentsError } = await supabase
@@ -171,7 +176,8 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       has_implementation_fee: project.hasImplementationFee,
       implementation_fee: project.implementationFee,
       is_installment: project.isInstallment,
-      installment_count: project.installmentCount
+      installment_count: project.installmentCount,
+      payment_date: project.paymentDate?.toISOString()
     })
     .select()
     .single();
@@ -181,7 +187,7 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
     return null;
   }
 
-  return mapSupabaseProject(data);
+  return mapSupabaseProject(data as ProjectWithPaymentDate);
 };
 
 // Delete a project
