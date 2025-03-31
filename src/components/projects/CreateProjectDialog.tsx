@@ -36,6 +36,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ptBR } from "date-fns/locale";
+import { createProject } from "@/services/supabaseService";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -66,7 +67,9 @@ export default function CreateProjectDialog({
   const [implementationFee, setImplementationFee] = useState("");
   const [isInstallment, setIsInstallment] = useState(false);
   const [installmentCount, setInstallmentCount] = useState("1");
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(
+    new Date(new Date().setDate(10))
+  );
 
   useEffect(() => {
     if (open) {
@@ -96,7 +99,7 @@ export default function CreateProjectDialog({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !client || !totalValue || !deadline) {
@@ -104,29 +107,65 @@ export default function CreateProjectDialog({
       return;
     }
     
-    const newProject: ProjectWithPayments = {
-      id: String(Date.now()),
-      name,
-      client,
-      totalValue: parseFloat(totalValue),
-      status: ProjectStatus.NEW,
-      teamMembers: selectedTeamMembers,
-      deadline,
-      description,
-      createdAt: new Date(),
-      payments: [],
-      paidAmount: 0,
-      remainingAmount: parseFloat(totalValue),
-      isRecurring,
-      hasImplementationFee,
-      implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
-      isInstallment,
-      installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
-      paymentDate: isRecurring ? paymentDate : undefined
-    };
+    if (isRecurring && !paymentDate) {
+      toast.error("Para projetos recorrentes, selecione a data de pagamento mensal");
+      return;
+    }
     
-    onSubmit(newProject);
-    resetForm();
+    try {
+      const tempProject: ProjectWithPayments = {
+        id: String(Date.now()),
+        name,
+        client,
+        totalValue: parseFloat(totalValue),
+        status: ProjectStatus.NEW,
+        teamMembers: selectedTeamMembers,
+        deadline,
+        description,
+        createdAt: new Date(),
+        payments: [],
+        paidAmount: 0,
+        remainingAmount: parseFloat(totalValue),
+        isRecurring,
+        hasImplementationFee,
+        implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
+        isInstallment,
+        installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
+        paymentDate: isRecurring ? paymentDate : undefined
+      };
+      
+      onSubmit(tempProject);
+      
+      const projectData = {
+        name,
+        client,
+        totalValue: parseFloat(totalValue),
+        status: ProjectStatus.NEW,
+        teamMembers: selectedTeamMembers,
+        deadline,
+        description,
+        isRecurring,
+        hasImplementationFee,
+        implementationFee: hasImplementationFee ? parseFloat(implementationFee) : undefined,
+        isInstallment,
+        installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
+        paymentDate: isRecurring ? paymentDate : undefined
+      };
+      
+      const savedProject = await createProject(projectData);
+      
+      if (!savedProject) {
+        console.error("Falha ao salvar o projeto no banco de dados");
+        toast.error("Erro ao salvar o projeto. Tente novamente mais tarde.");
+      } else {
+        console.log("Projeto salvo com sucesso:", savedProject);
+      }
+      
+      resetForm();
+    } catch (error) {
+      console.error("Erro ao criar projeto:", error);
+      toast.error("Erro ao criar projeto. Tente novamente.");
+    }
   };
   
   const resetForm = () => {
@@ -336,12 +375,18 @@ export default function CreateProjectDialog({
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                       <Calendar
                         mode="single"
                         selected={paymentDate}
-                        onSelect={(date) => setPaymentDate(date)}
+                        onSelect={setPaymentDate}
                         initialFocus
+                        month={new Date()}
+                        disableNavigation
+                        disabled={(date) => {
+                          const today = new Date();
+                          return date.getMonth() !== today.getMonth() || date.getFullYear() !== today.getFullYear();
+                        }}
                       />
                     </PopoverContent>
                   </Popover>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -9,7 +8,7 @@ import ProjectDetailDialog from "@/components/projects/ProjectDetailDialog";
 import CreateProjectDialog from "@/components/projects/CreateProjectDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteProject, fetchProjects, updateProjectStatus } from "@/services/supabaseService";
+import { deleteProject, fetchProjects, updateProjectStatus, fetchUsers as fetchUsersService } from "@/services/supabaseService";
 
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -20,24 +19,40 @@ export default function Projects() {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    console.log("Loading projects...");
     loadProjects();
     fetchUsers();
+    
+    const projectsSubscription = supabase
+      .channel('public:projects')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'projects' 
+      }, () => {
+        console.log("Projects table changed, reloading projects...");
+        loadProjects();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(projectsSubscription);
+    };
   }, []);
 
   const loadProjects = async () => {
     setLoading(true);
     try {
+      console.log("Fetching projects from Supabase...");
       const projectsData = await fetchProjects();
+      console.log("Projects loaded:", projectsData);
+      
       const projectsWithPayments = projectsData.map(project => ({
         ...project,
         payments: [],
         paidAmount: 0,
         remainingAmount: project.totalValue,
-        tasks: project.id.includes('1') ? [
-          { id: crypto.randomUUID(), title: 'Configuração inicial', completed: true, projectId: project.id },
-          { id: crypto.randomUUID(), title: 'Desenvolvimento de funcionalidades', completed: false, projectId: project.id },
-          { id: crypto.randomUUID(), title: 'Testes e validação', completed: false, projectId: project.id }
-        ] : []
+        tasks: []
       }));
       
       setProjects(projectsWithPayments);
@@ -51,16 +66,8 @@ export default function Projects() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (error) {
-        toast.error("Erro ao carregar usuários");
-        console.error("Error fetching users:", error);
-      } else {
-        setUsers(data as User[]);
-      }
+      const usersData = await fetchUsersService();
+      setUsers(usersData);
     } catch (error) {
       toast.error("Erro ao carregar usuários");
       console.error("Error fetching users:", error);
@@ -72,8 +79,7 @@ export default function Projects() {
     console.log(`Received drop event for project ${projectId} to status ${newStatus}`);
     
     try {
-      // Find the project in our projects array
-      const projectToUpdate = projects.find(p => p.id === projectId || String(p.id) === projectId);
+      const projectToUpdate = projects.find(p => p.id === projectId);
       
       if (!projectToUpdate) {
         console.error(`Project with ID ${projectId} not found in state. Available IDs:`, 
@@ -84,26 +90,19 @@ export default function Projects() {
       
       console.log(`Found project to update:`, projectToUpdate);
       
-      // Otimisticamente atualiza a UI
       setProjects(prevProjects => 
         prevProjects.map(project => 
-          project.id === projectId || project.id === projectToUpdate.id
+          project.id === projectId
             ? { ...project, status: newStatus } 
             : project
         )
       );
       
-      // Obter o ID válido do projeto
       const actualProjectId = typeof projectToUpdate.id === 'string' 
         ? projectToUpdate.id 
         : String(projectToUpdate.id);
       
       console.log(`Using project ID for update: ${actualProjectId}`);
-      
-      // Se for atualizar no banco de dados, garantir que o ID seja um UUID válido
-      if (actualProjectId !== projectId) {
-        console.log(`Using actual project ID ${actualProjectId} instead of drag ID ${projectId}`);
-      }
       
       const success = await updateProjectStatus(actualProjectId, newStatus);
       
