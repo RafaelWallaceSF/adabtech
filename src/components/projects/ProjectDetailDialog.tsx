@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -76,21 +77,21 @@ export default function ProjectDetailDialog({
   };
 
   const handleDeadlineChange = (date: Date | undefined) => {
-    setFormData(prev => ({ ...prev, deadline: date }));
+    setFormData(prev => ({ ...prev, deadline: date as Date }));
   };
 
   const handleUpdateProject = async () => {
     try {
       setUpdating(true);
 
-      // Format the dates properly before sending to updateProject
+      // Format the deadline properly before sending to updateProject
       const projectDataToUpdate = {
         id: project.id,
         name: formData.name,
         client: formData.client,
         totalValue: formData.totalValue,
         status: formData.status,
-        deadline: formData.deadline instanceof Date ? formData.deadline.toISOString() : formData.deadline,
+        deadline: formData.deadline,
         description: formData.description,
         teamMembers: formData.teamMembers
       };

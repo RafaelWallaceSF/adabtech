@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { fetchProjects, createPayment, markPaymentAsPaid, deletePayment, enableRealtimeForPayments } from '@/services/supabaseService';
-import CreatePaymentDialog from '@/components/payments/CreatePaymentDialog';
-import PaymentDetailDialog from '@/components/payments/PaymentDetailDialog';
+import { CreatePaymentDialog } from '@/components/payments/CreatePaymentDialog';
+import { PaymentDetailDialog } from '@/components/payments/PaymentDetailDialog';
 import { DataTable } from '@/components/payments/PaymentsTable';
 import { columns } from '@/components/payments/columns';
 
@@ -37,10 +38,7 @@ const Payments = () => {
       });
     };
 
-    enableRealtimeForPayments(
-      (newPayment) => handleRealtimePaymentEvent(newPayment),
-      setPayments
-    );
+    enableRealtimeForPayments();
 
     return () => {
       // Cleanup subscription

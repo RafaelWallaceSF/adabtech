@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Payment, PaymentStatus } from "@/types";
 import { mapSupabasePayment } from "./mappers";
 
-export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payment | null> => {
+export const createPayment = async (payment: Omit<Payment, "id" | "status">): Promise<Payment | null> => {
   try {
     const { data, error } = await supabase
       .from("payments")
@@ -11,7 +11,7 @@ export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payme
         project_id: payment.projectId,
         amount: payment.amount,
         due_date: payment.dueDate.toISOString(),
-        status: payment.status,
+        status: PaymentStatus.PENDING,
         description: payment.description
       })
       .select()
@@ -29,8 +29,9 @@ export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payme
   }
 };
 
-export const markPaymentAsPaid = async (paymentId: string, paidDate: Date): Promise<boolean> => {
+export const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
   try {
+    const paidDate = new Date();
     const { error } = await supabase
       .from("payments")
       .update({

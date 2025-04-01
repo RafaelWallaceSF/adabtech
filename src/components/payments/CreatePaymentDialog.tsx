@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -38,8 +37,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-import { ProjectWithPayments, Payment, PaymentStatus } from "@/types";
+import { toast } from "sonner";
+import { Payment, Project, PaymentStatus } from "@/types";
 
 // Define form schema with zod
 const formSchema = z.object({
@@ -60,30 +59,34 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface CreatePaymentDialogProps {
-  projects: ProjectWithPayments[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  projects: Project[];
   onPaymentCreated: (payment: Payment) => void;
 }
 
-export function CreatePaymentDialog({ projects, onPaymentCreated }: CreatePaymentDialogProps) {
-  const [open, setOpen] = useState(false);
-
+export function CreatePaymentDialog({ 
+  open, 
+  onOpenChange, 
+  projects, 
+  onPaymentCreated 
+}: CreatePaymentDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: "",
-      amount: undefined,
     },
   });
 
   // Format project name with client for select
-  const formatProjectOption = (project: ProjectWithPayments) => {
+  const formatProjectOption = (project: Project) => {
     return `${project.name} (${project.client})`;
   };
 
   function onSubmit(values: FormValues) {
     // Create new payment object
     const newPayment: Payment = {
-      id: `payment-${Date.now()}`, // Generate a unique ID
+      id: `temp-${Date.now()}`, // Temporary ID will be replaced by DB
       projectId: values.projectId,
       description: values.description,
       amount: values.amount,
@@ -94,39 +97,12 @@ export function CreatePaymentDialog({ projects, onPaymentCreated }: CreatePaymen
     // Pass the new payment to the parent component
     onPaymentCreated(newPayment);
     
-    // Show success toast
-    toast({
-      title: "Pagamento criado",
-      description: "O pagamento foi criado com sucesso.",
-    });
-    
-    // Close the dialog and reset form
-    setOpen(false);
+    // Reset form
     form.reset();
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2 h-4 w-4"
-          >
-            <path d="M5 12h14" />
-            <path d="M12 5v14" />
-          </svg>
-          Novo Pagamento
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Pagamento</DialogTitle>
