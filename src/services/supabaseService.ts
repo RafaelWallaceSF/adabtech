@@ -26,6 +26,12 @@ import {
   fetchUsers, 
   fetchClients 
 } from './supabase/clientUserService';
+import {
+  uploadProjectFile,
+  getProjectAttachments,
+  deleteProjectAttachment,
+  getFileUrl
+} from './supabase/attachmentService';
 
 // Re-export everything
 export {
@@ -58,5 +64,11 @@ export {
   
   // Client & User operations
   fetchUsers,
-  fetchClients
+  fetchClients,
+  
+  // Attachment operations
+  uploadProjectFile,
+  getProjectAttachments,
+  deleteProjectAttachment,
+  getFileUrl
 };
