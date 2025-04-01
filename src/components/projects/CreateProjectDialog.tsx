@@ -901,11 +901,11 @@ export default function CreateProjectDialog({
                   </div>
                 </div>
               </TabsContent>
-            </form>
-          </ScrollArea>
-        </Tabs>
-        
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Criar Projeto
+                </Button
