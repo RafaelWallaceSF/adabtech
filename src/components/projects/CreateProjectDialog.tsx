@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon, CreditCard, DollarSign, Loader2, Repeat, User as UserIcon, UserPlus } from "lucide-react";
+import { CalendarIcon, CreditCard, DollarSign, FileIcon, Loader2, PaperclipIcon, Repeat, User as UserIcon, UserPlus, XIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -34,7 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ptBR } from "date-fns/locale";
-import { createProject } from "@/services/supabaseService";
+import { createProject, uploadMultipleFiles } from "@/services/supabaseService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -50,6 +50,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -96,6 +97,10 @@ export default function CreateProjectDialog({
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
   const [searchDeveloper, setSearchDeveloper] = useState("");
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -227,12 +232,41 @@ export default function CreateProjectDialog({
         toast.error("Erro ao salvar o projeto. Tente novamente mais tarde.");
       } else {
         console.log("Projeto salvo com sucesso:", savedProject);
+        
+        if (selectedFiles.length > 0) {
+          setIsUploading(true);
+          setUploadProgress(0);
+          
+          try {
+            const result = await uploadMultipleFiles(savedProject.id, selectedFiles);
+            
+            if (result.success) {
+              console.log("Arquivos enviados com sucesso:", result.attachments);
+              toast.success(`${result.attachments.length} arquivo(s) anexado(s) ao projeto.`);
+              
+              if (result.failures.length > 0) {
+                toast.error(`Não foi possível enviar ${result.failures.length} arquivo(s).`);
+                console.error("Falhas no upload:", result.failures);
+              }
+            } else {
+              toast.error("Erro ao enviar os arquivos");
+            }
+          } catch (error) {
+            console.error("Erro ao enviar arquivos:", error);
+            toast.error("Erro ao enviar os arquivos");
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(100);
+          }
+        }
+        
+        resetForm();
       }
       
-      resetForm();
     } catch (error) {
       console.error("Erro ao criar projeto:", error);
       toast.error("Erro ao criar projeto. Tente novamente.");
+      setIsUploading(false);
     }
   };
   
@@ -262,6 +296,9 @@ export default function CreateProjectDialog({
     setActiveTab("details");
     setSearchDeveloper("");
     setIsSearchDropdownOpen(false);
+    setSelectedFiles([]);
+    setUploadProgress(0);
+    setIsUploading(false);
   };
   
   const toggleTeamMember = (userId: string) => {
@@ -354,6 +391,30 @@ export default function CreateProjectDialog({
     setIsSearchDropdownOpen(false);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const fileList = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...fileList]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearFiles = () => {
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const getFileSize = (size: number): string => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
@@ -365,10 +426,11 @@ export default function CreateProjectDialog({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="payment">Pagamento</TabsTrigger>
             <TabsTrigger value="costs">Custos</TabsTrigger>
+            <TabsTrigger value="attachments">Anexos</TabsTrigger>
           </TabsList>
           
           <ScrollArea className="max-h-[70vh] overflow-y-auto">
@@ -966,6 +1028,97 @@ export default function CreateProjectDialog({
                 </div>
               </TabsContent>
               
+              <TabsContent value="attachments" className="space-y-4">
+                <div className="space-y-4 border rounded-lg p-4">
+                  <h3 className="font-semibold flex items-center">
+                    <PaperclipIcon className="h-4 w-4 mr-2" />
+                    Anexos do Projeto
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="file-upload">Arquivos</Label>
+                    <div className="border-2 border-dashed rounded-md p-4 text-center">
+                      <input
+                        id="file-upload"
+                        type="file"
+                        className="hidden"
+                        multiple
+                        onChange={handleFileChange}
+                        ref={fileInputRef}
+                      />
+                      <div className="space-y-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full"
+                        >
+                          <PaperclipIcon className="h-4 w-4 mr-2" />
+                          Selecionar Arquivos
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                          Arraste e solte arquivos aqui ou clique para selecionar
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Arquivos Selecionados ({selectedFiles.length})</Label>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={clearFiles}
+                          className="h-8 text-muted-foreground hover:text-foreground"
+                        >
+                          Limpar Todos
+                        </Button>
+                      </div>
+                      
+                      <div className="border rounded-md divide-y max-h-[200px] overflow-y-auto">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 hover:bg-muted/50">
+                            <div className="flex items-center space-x-2 truncate">
+                              <FileIcon className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm truncate">{file.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {getFileSize(file.size)}
+                              </span>
+                            </div>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => removeFile(index)}
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {isUploading && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Enviando arquivos...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <Progress value={uploadProgress} className="h-2" />
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Os arquivos serão anexados após a criação do projeto.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
               <div className="pt-6 flex justify-end space-x-2">
                 <Button
                   type="button"
@@ -974,8 +1127,13 @@ export default function CreateProjectDialog({
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  Criar Projeto
+                <Button type="submit" disabled={isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : "Criar Projeto"}
                 </Button>
               </div>
             </form>
