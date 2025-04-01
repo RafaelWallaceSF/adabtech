@@ -512,12 +512,12 @@ export const enableRealtimeForPayments = async (): Promise<void> => {
     // Enable realtime for payments table
     await supabase.rpc('supabase_functions.enable_realtime', {
       table_name: 'payments'
-    });
+    } as any);
     
     // Also enable realtime for clients table
     await supabase.rpc('supabase_functions.enable_realtime', {
       table_name: 'clients'
-    });
+    } as any);
     
     console.log("Realtime enabled for payments and clients tables");
   } catch (error) {
