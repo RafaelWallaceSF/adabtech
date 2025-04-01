@@ -49,7 +49,7 @@ export const uploadProjectFile = async (
       })
       .single();
     
-    if (attachmentError) {
+    if (attachmentError || !attachmentData) {
       console.error("Erro ao registrar anexo:", attachmentError);
       
       // Se falhar ao registrar no banco, tentar remover o arquivo do storage
@@ -57,7 +57,7 @@ export const uploadProjectFile = async (
         .from('project_attachments')
         .remove([filePath]);
       
-      return { success: false, error: attachmentError.message };
+      return { success: false, error: attachmentError?.message || 'Falha ao salvar os dados do anexo' };
     }
     
     // Mapear para o formato da interface
@@ -86,7 +86,7 @@ export const getProjectAttachments = async (projectId: string): Promise<ProjectA
         p_project_id: projectId
       });
     
-    if (error) {
+    if (error || !data) {
       console.error("Erro ao buscar anexos:", error);
       return [];
     }
