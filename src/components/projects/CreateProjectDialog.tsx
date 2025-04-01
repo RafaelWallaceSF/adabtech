@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -913,4 +914,71 @@ export default function CreateProjectDialog({
                           min="0"
                           step="0.01"
                           value={toolsCost}
-                          onChange={(e) => setToolsCost(e.target.value
+                          onChange={(e) => setToolsCost(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="marketingCost">Marketing (R$)</Label>
+                        <Input
+                          id="marketingCost"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={marketingCost}
+                          onChange={(e) => setMarketingCost(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="otherCosts">Outros Custos (R$)</Label>
+                        <Input
+                          id="otherCosts"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={otherCosts}
+                          onChange={(e) => setOtherCosts(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Margem de Lucro</Label>
+                        <div className="h-10 px-3 py-2 border rounded-md flex items-center justify-between">
+                          <span className={calculateProfitMargin() < 0 ? "text-red-500" : ""}>
+                            {calculateProfitMargin().toFixed(2)}%
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            {calculateTotalCost().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <div className="pt-6 flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Criar Projeto
+                </Button>
+              </div>
+            </form>
+          </ScrollArea>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
