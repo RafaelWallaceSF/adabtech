@@ -25,7 +25,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // Enable realtime for payments
+    // Enable realtime for payments and clients
     enableRealtimeForPayments();
   }, []);
 

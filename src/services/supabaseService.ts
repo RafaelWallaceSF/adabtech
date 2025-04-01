@@ -509,12 +509,18 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
 
 export const enableRealtimeForPayments = async (): Promise<void> => {
   try {
-    // Make sure payments are tracked in realtime
+    // Enable realtime for payments table
     await supabase.rpc('supabase_functions.enable_realtime', {
       table_name: 'payments'
     });
-    console.log("Realtime enabled for payments table");
+    
+    // Also enable realtime for clients table
+    await supabase.rpc('supabase_functions.enable_realtime', {
+      table_name: 'clients'
+    });
+    
+    console.log("Realtime enabled for payments and clients tables");
   } catch (error) {
-    console.error("Error enabling realtime for payments:", error);
+    console.error("Error enabling realtime:", error);
   }
 };
