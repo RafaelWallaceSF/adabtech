@@ -1,15 +1,17 @@
-
 export enum ProjectStatus {
-  NEW = "new",
-  IN_PROGRESS = "in_progress",
-  IN_PRODUCTION = "in_production",
-  ACTIVE = "active"
+  NEW = 'new',
+  IN_PROGRESS = 'in_progress',
+  IN_PRODUCTION = 'in_production',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
 }
 
 export enum PaymentStatus {
-  PAID = "paid",
-  PENDING = "pending",
-  OVERDUE = "overdue"
+  PENDING = 'pending',
+  PAID = 'paid',
+  OVERDUE = 'overdue',
+  CANCELLED = 'cancelled'
 }
 
 export enum UserRole {
@@ -55,6 +57,8 @@ export interface Project {
   installmentCount?: number;
   paymentDate?: Date;
   developerShares?: Record<string, number>;
+  projectCosts?: Record<string, number>;
+  totalCost?: number;
 }
 
 export interface Payment {
@@ -69,9 +73,9 @@ export interface Payment {
 
 export interface ProjectWithPayments extends Project {
   payments: Payment[];
+  tasks?: Task[];
   paidAmount: number;
   remainingAmount: number;
-  tasks?: Task[];
 }
 
 export interface ProjectCardProps {

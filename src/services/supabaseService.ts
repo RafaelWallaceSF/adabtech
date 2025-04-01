@@ -4,7 +4,9 @@ import { Payment, PaymentStatus, Project, ProjectStatus, Task, User } from "@/ty
 
 type ProjectWithPaymentDate = Database["public"]["Tables"]["projects"]["Row"] & { 
   payment_date?: string | null,
-  developer_shares?: Record<string, number> | null
+  developer_shares?: Record<string, number> | null,
+  project_costs?: Record<string, number> | null,
+  total_cost?: number | null
 };
 
 export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => {
@@ -25,7 +27,9 @@ export const mapSupabaseProject = (project: ProjectWithPaymentDate): Project => 
     isInstallment: project.is_installment || false,
     installmentCount: project.installment_count || undefined,
     paymentDate: project.payment_date ? new Date(project.payment_date) : undefined,
-    developerShares: project.developer_shares as Record<string, number> || {}
+    developerShares: project.developer_shares as Record<string, number> || {},
+    projectCosts: project.project_costs as Record<string, number> || {},
+    totalCost: project.total_cost ? Number(project.total_cost) : undefined
   };
 };
 
@@ -115,7 +119,9 @@ const createRecurringPayments = async (projectId: string): Promise<void> => {
     
     const project = mapSupabaseProject({
       ...projectData,
-      developer_shares: projectData.developer_shares as Record<string, number> | null
+      developer_shares: projectData.developer_shares as Record<string, number> | null,
+      project_costs: projectData.project_costs as Record<string, number> | null,
+      total_cost: projectData.total_cost as number | null
     });
     
     if (!project.isRecurring) {
@@ -167,6 +173,8 @@ export const updateProject = async (
     status?: ProjectStatus;
     team_members?: string[];
     developer_shares?: Record<string, number>;
+    project_costs?: Record<string, number>;
+    total_cost?: number;
   }
 ): Promise<boolean> => {
   console.log(`Updating project in database: Project ID ${projectId}`, updates);
@@ -281,7 +289,9 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       is_installment: project.isInstallment,
       installment_count: project.installmentCount,
       payment_date: project.paymentDate?.toISOString(),
-      developer_shares: project.developerShares || {}
+      developer_shares: project.developerShares || {},
+      project_costs: project.projectCosts || {},
+      total_cost: project.totalCost || 0
     })
     .select()
     .single();
