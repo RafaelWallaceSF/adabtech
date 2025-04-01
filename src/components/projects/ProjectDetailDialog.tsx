@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { updateProject } from "@/services/supabaseService";
+import ProjectAttachments from "./ProjectAttachments";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ProjectDetailDialogProps {
   project: ProjectWithPayments;
@@ -54,6 +56,7 @@ export default function ProjectDetailDialog({
     teamMembers: project.teamMembers,
   });
   const [updating, setUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
 
   useEffect(() => {
     setFormData({
@@ -125,7 +128,7 @@ export default function ProjectDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Detalhes do Projeto</DialogTitle>
           <DialogDescription>
@@ -133,102 +136,115 @@ export default function ProjectDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome do Projeto</Label>
-            <Input
-              type="text"
-              id="name"
-              value={formData.name}
-              onChange={handleInputChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client">Cliente</Label>
-            <Input
-              type="text"
-              id="client"
-              value={formData.client}
-              onChange={handleInputChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="totalValue">Valor Total (R$)</Label>
-            <Input
-              type="number"
-              id="totalValue"
-              value={formData.totalValue}
-              onChange={handleInputChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={formData.status} onValueChange={handleStatusChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ProjectStatus.NEW}>Novo</SelectItem>
-                <SelectItem value={ProjectStatus.IN_PROGRESS}>Em Andamento</SelectItem>
-                <SelectItem value={ProjectStatus.IN_PRODUCTION}>Em Produção</SelectItem>
-                <SelectItem value={ProjectStatus.ACTIVE}>Ativo</SelectItem>
-                <SelectItem value={ProjectStatus.COMPLETED}>Concluído</SelectItem>
-                <SelectItem value={ProjectStatus.CANCELLED}>Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Prazo</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.deadline && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.deadline ? (
-                    format(formData.deadline, "dd/MM/yyyy")
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.deadline}
-                  onSelect={handleDeadlineChange}
-                  initialFocus
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Informações</TabsTrigger>
+            <TabsTrigger value="attachments">Anexos</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details" className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome do Projeto</Label>
+                <Input
+                  type="text"
+                  id="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Descrição</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={handleInputChange}
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="client">Cliente</Label>
+                <Input
+                  type="text"
+                  id="client"
+                  value={formData.client}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleUpdateProject} disabled={updating}>
-            {updating ? "Atualizando..." : "Salvar"}
-          </Button>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalValue">Valor Total (R$)</Label>
+                <Input
+                  type="number"
+                  id="totalValue"
+                  value={formData.totalValue}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ProjectStatus.NEW}>Novo</SelectItem>
+                    <SelectItem value={ProjectStatus.IN_PROGRESS}>Em Andamento</SelectItem>
+                    <SelectItem value={ProjectStatus.IN_PRODUCTION}>Em Produção</SelectItem>
+                    <SelectItem value={ProjectStatus.ACTIVE}>Ativo</SelectItem>
+                    <SelectItem value={ProjectStatus.COMPLETED}>Concluído</SelectItem>
+                    <SelectItem value={ProjectStatus.CANCELLED}>Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Prazo</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.deadline && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.deadline ? (
+                        format(formData.deadline, "dd/MM/yyyy")
+                      ) : (
+                        <span>Selecione uma data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.deadline}
+                      onSelect={handleDeadlineChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateProject} disabled={updating}>
+                {updating ? "Atualizando..." : "Salvar"}
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="attachments">
+            <ProjectAttachments projectId={project.id} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
