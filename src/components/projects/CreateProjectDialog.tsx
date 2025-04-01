@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -914,4 +915,10 @@ export default function CreateProjectDialog({
                   Criar Projeto
                 </Button>
               </div>
-            </
+            </form>
+          </ScrollArea>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
