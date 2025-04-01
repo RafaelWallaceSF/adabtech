@@ -1,101 +1,108 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
-import { SupabaseTask, mapSupabaseTask } from "./mappers";
+import { mapSupabaseTask } from "./mappers";
 
-export const fetchTasks = async (): Promise<Task[]> => {
-  const { data, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .order("created_at", { ascending: false });
+export const fetchTasks = async (projectId: string): Promise<Task[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching tasks:", error);
+    if (error) {
+      console.error("Error fetching tasks:", error);
+      return [];
+    }
+
+    return data.map(mapSupabaseTask);
+  } catch (error) {
+    console.error("Exception fetching tasks:", error);
     return [];
   }
-
-  return data.map(task => mapSupabaseTask(task as SupabaseTask));
 };
 
-export const createTask = async (task: {
-  title: string;
-  description?: string;
-  due_date?: string;
-  project_id: string;
-  assigned_to?: string;
-  completed?: boolean;
-}): Promise<Task | null> => {
-  const { data, error } = await supabase
-    .from("tasks")
-    .insert(task)
-    .select()
-    .single();
+export const createTask = async (task: Omit<Task, "id" | "createdAt">): Promise<Task | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
+        title: task.title,
+        completed: task.completed,
+        project_id: task.projectId,
+        description: task.description,
+        due_date: task.dueDate,
+        assigned_to: task.assignedTo
+      })
+      .select()
+      .single();
 
-  if (error) {
-    console.error("Error creating task:", error);
+    if (error) {
+      console.error("Error creating task:", error);
+      return null;
+    }
+
+    return mapSupabaseTask(data);
+  } catch (error) {
+    console.error("Exception creating task:", error);
     return null;
   }
-
-  return mapSupabaseTask(data as SupabaseTask);
 };
 
-export const updateTask = async (taskId: string, task: Partial<Task>): Promise<boolean> => {
-  if (taskId.startsWith('temp-')) {
+export const updateTask = async (task: Partial<Task> & { id: string }): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .update(task)
+      .eq("id", task.id);
+    
+    if (error) {
+      console.error("Error updating task:", error);
+      return false;
+    }
+    
     return true;
-  }
-
-  const { error } = await supabase
-    .from("tasks")
-    .update({
-      title: task.title,
-      description: task.description,
-      due_date: task.dueDate,
-      project_id: task.projectId,
-      assigned_to: task.assignedTo,
-      completed: task.completed
-    })
-    .eq("id", taskId);
-
-  if (error) {
-    console.error("Error updating task:", error);
+  } catch (error) {
+    console.error("Exception updating task:", error);
     return false;
   }
-
-  return true;
 };
 
 export const updateTaskStatus = async (taskId: string, completed: boolean): Promise<boolean> => {
-  if (taskId.startsWith('temp-')) {
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ completed })
+      .eq("id", taskId);
+    
+    if (error) {
+      console.error("Error updating task status:", error);
+      return false;
+    }
+    
     return true;
-  }
-
-  const { error } = await supabase
-    .from("tasks")
-    .update({ completed })
-    .eq("id", taskId);
-
-  if (error) {
-    console.error("Error updating task status:", error);
+  } catch (error) {
+    console.error("Exception updating task status:", error);
     return false;
   }
-
-  return true;
 };
 
 export const deleteTask = async (taskId: string): Promise<boolean> => {
-  if (taskId.startsWith('temp-')) {
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("Error deleting task:", error);
+      return false;
+    }
+
     return true;
-  }
-
-  const { error } = await supabase
-    .from("tasks")
-    .delete()
-    .eq("id", taskId);
-
-  if (error) {
-    console.error("Error deleting task:", error);
+  } catch (error) {
+    console.error("Exception deleting task:", error);
     return false;
   }
-
-  return true;
 };

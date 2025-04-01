@@ -1,20 +1,18 @@
-
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon, CreditCard, DollarSign, Loader2, Percent, Repeat, User as UserIcon, UserPlus } from "lucide-react";
+import { CalendarIcon, CreditCard, DollarSign, Loader2, Repeat, User as UserIcon, UserPlus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -25,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { 
   Select,
   SelectContent,
@@ -40,6 +37,12 @@ import { ptBR } from "date-fns/locale";
 import { createProject } from "@/services/supabaseService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -912,9 +915,3 @@ export default function CreateProjectDialog({
                 </Button>
               </div>
             </form>
-          </ScrollArea>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
-  );
-}
