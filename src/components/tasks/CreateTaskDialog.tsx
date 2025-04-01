@@ -1,22 +1,39 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Task, User } from "@/types";
-import { toast } from "sonner";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Circle, User } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { createTask, fetchProjects } from "@/services/supabaseService";
+import { toast } from "sonner";
+import { createTask } from "@/services/supabaseService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  projectId: string;
   onSubmit: (task: Task) => void;
   users: User[];
 }
@@ -24,87 +41,68 @@ interface CreateTaskDialogProps {
 export default function CreateTaskDialog({
   open,
   onOpenChange,
+  projectId,
   onSubmit,
   users
 }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [projectId, setProjectId] = useState<string>("");
   const [assignedTo, setAssignedTo] = useState<string | undefined>(undefined);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      loadProjects();
-      resetForm();
-    }
-  }, [open]);
-
-  const loadProjects = async () => {
-    setLoadingProjects(true);
-    try {
-      const projectsData = await fetchProjects();
-      setProjects(projectsData.map(p => ({ id: p.id, name: p.name })));
-    } catch (error) {
-      console.error("Error loading projects:", error);
-      toast.error("Erro ao carregar projetos");
-    } finally {
-      setLoadingProjects(false);
-    }
-  };
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setDueDate(undefined);
-    setProjectId("");
     setAssignedTo(undefined);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !projectId) {
-      toast.error("Preencha os campos obrigatórios");
+    
+    if (!title) {
+      toast.error("O título da tarefa é obrigatório");
       return;
     }
-
-    setLoading(true);
+    
     try {
-      const tempId = `temp-${Date.now()}`;
+      // Corrigindo o erro na linha 86 - adicionando o campo id com um valor temporário
+      const tempTask = {
+        id: `temp-${Date.now()}`,
+        title,
+        description,
+        completed: false,
+        projectId,
+        dueDate: dueDate ? dueDate.toISOString() : '',
+        assignedTo,
+        createdAt: new Date().toISOString()
+      };
+      
+      onSubmit(tempTask);
+      
+      // Corrigindo o erro na linha 91 - alterando due_date para dueDate
       const taskData = {
         title,
         description,
         completed: false,
-        projectId: projectId || "",
+        projectId,
         dueDate: dueDate ? dueDate.toISOString() : undefined,
         assignedTo: assignedTo || undefined
       };
-
-      onSubmit(taskData);
       
-      const savedTask = await createTask({
-        title,
-        description,
-        due_date: dueDate ? dueDate.toISOString() : undefined,
-        project_id: projectId,
-        assigned_to: assignedTo,
-        completed: false
-      });
-
+      const savedTask = await createTask(taskData);
+      
       if (!savedTask) {
-        toast.error("Erro ao salvar tarefa");
+        console.error("Falha ao salvar a tarefa no banco de dados");
+        toast.error("Erro ao salvar a tarefa. Tente novamente mais tarde.");
+      } else {
+        console.log("Tarefa salva com sucesso:", savedTask);
+        resetForm();
       }
-
-      resetForm();
-      onOpenChange(false);
     } catch (error) {
-      console.error("Error creating task:", error);
-      toast.error("Erro ao criar tarefa");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao criar tarefa:", error);
+      toast.error("Erro ao criar tarefa. Tente novamente.");
     }
   };
 
@@ -112,39 +110,37 @@ export default function CreateTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Nova Tarefa</DialogTitle>
+          <DialogTitle>Nova Tarefa</DialogTitle>
+          <DialogDescription>
+            Adicione uma nova tarefa ao projeto.
+          </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="title">Título</Label>
             <Input
               id="title"
+              placeholder="Nome da tarefa"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título da tarefa"
               required
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
+              placeholder="Detalhes da tarefa..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrição da tarefa"
-              rows={3}
             />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="dueDate">Data de Vencimento</Label>
+            <Label>Data de Vencimento</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant="outline"
-                  id="dueDate"
+                  variant={"outline"}
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !dueDate && "text-muted-foreground"
@@ -164,46 +160,14 @@ export default function CreateTaskDialog({
               </PopoverContent>
             </Popover>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="project">Projeto *</Label>
-            <Select 
-              value={projectId} 
-              onValueChange={(value) => setProjectId(value)}
-              disabled={loadingProjects}
-            >
-              <SelectTrigger id="project">
-                <SelectValue placeholder={loadingProjects ? "Carregando..." : "Selecione um projeto"} />
+            <Label htmlFor="assignedTo">Atribuir a</Label>
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um usuário" />
               </SelectTrigger>
               <SelectContent>
-                {loadingProjects ? (
-                  <div className="flex items-center justify-center p-2">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span>Carregando projetos...</span>
-                  </div>
-                ) : (
-                  projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="assignedTo">Desenvolvedor Responsável</Label>
-            <Select 
-              value={assignedTo || ""} 
-              onValueChange={(value) => setAssignedTo(value || undefined)}
-            >
-              <SelectTrigger id="assignedTo">
-                <SelectValue placeholder="Selecione um desenvolvedor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
-                {users.filter(user => user.role === 'developer').map((user) => (
+                {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -211,13 +175,11 @@ export default function CreateTaskDialog({
               </SelectContent>
             </Select>
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar
             </Button>
           </div>

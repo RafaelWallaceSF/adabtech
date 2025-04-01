@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Project, ProjectStatus } from "@/types";
 import { mapSupabaseProject, ProjectWithPaymentDate } from "./mappers";
@@ -24,10 +23,8 @@ export const updateProjectStatus = async (projectId: string, newStatus: ProjectS
 
 export const updateProject = async (project: Partial<Project> & { id: string }): Promise<boolean> => {
   try {
-    // Convertendo para o formato aceito pelo Supabase
     const supabaseProject: any = { ...project };
     
-    // Convertendo datas para formato ISO string
     if (project.deadline instanceof Date) {
       supabaseProject.deadline = project.deadline.toISOString();
     }
@@ -36,7 +33,6 @@ export const updateProject = async (project: Partial<Project> & { id: string }):
       delete supabaseProject.paymentDate;
     }
     
-    // Mapeando campos com nomes diferentes
     if ('clientId' in project) {
       supabaseProject.client_id = project.clientId;
       delete supabaseProject.clientId;
@@ -47,7 +43,7 @@ export const updateProject = async (project: Partial<Project> & { id: string }):
       delete supabaseProject.totalValue;
     }
     
-    if ('teamMembers' in project) {
+    if ('teamMembers' in project && Array.isArray(project.teamMembers)) {
       supabaseProject.team_members = project.teamMembers;
       delete supabaseProject.teamMembers;
     }
@@ -156,7 +152,7 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       client_id: project.clientId,
       total_value: project.totalValue,
       status: project.status,
-      team_members: project.teamMembers,
+      team_members: Array.isArray(project.teamMembers) ? project.teamMembers : [],
       deadline: project.deadline?.toISOString(),
       description: project.description,
       is_recurring: project.isRecurring,
@@ -165,7 +161,7 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt">):
       is_installment: project.isInstallment,
       installment_count: project.installmentCount || 1,
       payment_date: project.paymentDate?.toISOString(),
-      developer_shares: project.developerShares,
+      developer_shares: project.developerShares || {},
       project_costs: project.projectCosts || {},
       total_cost: project.totalCost || 0
     };

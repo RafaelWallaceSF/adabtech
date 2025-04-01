@@ -5,7 +5,7 @@ import { Task } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskDetailDialog } from '@/components/tasks/TaskDetailDialog';
 
 const Tasks = () => {
@@ -16,30 +16,42 @@ const Tasks = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          toast.error("Erro ao carregar tarefas");
+          console.error("Error fetching tasks:", error);
+          return;
+        }
+
+        const mappedTasks: Task[] = data.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          completed: task.completed,
+          projectId: task.project_id,
+          dueDate: task.due_date,
+          assignedTo: task.assigned_to,
+          createdAt: task.created_at
+        }));
+
+        setTasks(mappedTasks);
+      } catch (error) {
+        toast.error("Erro ao carregar tarefas");
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTasks();
   }, []);
-
-  const fetchTasks = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        toast.error("Erro ao carregar as tarefas");
-        console.error("Error fetching tasks:", error);
-      } else {
-        setTasks(data as Task[]);
-      }
-    } catch (error) {
-      toast.error("Erro ao carregar as tarefas");
-      console.error("Error fetching tasks:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleTaskCreated = () => {
     fetchTasks();

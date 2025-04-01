@@ -138,7 +138,13 @@ export default function Projects() {
   };
 
   const handleCreateProject = (newProject: ProjectWithPayments) => {
-    setProjects(prev => [...prev, newProject]);
+    // Verificar se newProject.teamMembers é um array
+    const projectWithValidTeamMembers = {
+      ...newProject,
+      teamMembers: Array.isArray(newProject.teamMembers) ? newProject.teamMembers : []
+    };
+
+    setProjects(prev => [...prev, projectWithValidTeamMembers]);
     toast.success("Projeto criado com sucesso");
     setIsCreateOpen(false);
   };

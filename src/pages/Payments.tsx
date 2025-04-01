@@ -39,6 +39,7 @@ export default function Payments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment & { projectName: string, client: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
 
   useEffect(() => {
     loadProjects();
@@ -356,6 +357,10 @@ export default function Payments() {
       </TableCell>
     </TableRow>
   );
+
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter as PaymentStatus | 'all');
+  };
 
   return (
     <div className="space-y-6">

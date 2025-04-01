@@ -1,562 +1,482 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectWithPayments, PaymentStatus, ProjectStatus, Task } from "@/types";
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { 
-  CalendarDays, DollarSign, Users, FileText, CheckCircle, 
-  AlertCircle, Clock, List, Plus, Square, CheckSquare, 
-  Trash2, CreditCard, Percent, Repeat, Edit 
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { getProjectTeamMembers } from "@/data/mockData";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ProjectStatus, ProjectWithPayments, Task, User } from "@/types";
+import { format } from "date-fns";
+import { CalendarIcon, Copy, Plus, Trash2, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { updateProject } from "@/services/supabaseService";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { createTask, deleteTask, fetchTasks, updateTask } from "@/services/supabaseService";
+import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProjectDetailDialogProps {
   project: ProjectWithPayments;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProjectUpdate?: (updatedProject: ProjectWithPayments) => void;
+  onProjectUpdate: (updatedProject: ProjectWithPayments) => void;
 }
 
-export default function ProjectDetailDialog({ 
-  project, 
-  open, 
+export default function ProjectDetailDialog({
+  project,
+  open,
   onOpenChange,
   onProjectUpdate
 }: ProjectDetailDialogProps) {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [tasks, setTasks] = useState<Task[]>(project.tasks || []);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: project.name,
-    client: project.client,
-    description: project.description || "",
-    totalValue: project.totalValue,
-    deadline: project.deadline
-  });
-  
-  const teamMembers = getProjectTeamMembers(project);
-  
-  const progressPercentage = Math.round((project.paidAmount / project.totalValue) * 100);
-  const isOverdue = project.deadline < new Date() && project.status !== ProjectStatus.ACTIVE;
-  
-  const statusLabels = {
-    [ProjectStatus.NEW]: "Novo",
-    [ProjectStatus.IN_PROGRESS]: "Em Andamento",
-    [ProjectStatus.IN_PRODUCTION]: "Em Produção",
-    [ProjectStatus.ACTIVE]: "Ativo",
-  };
-  
-  const statusColors = {
-    [ProjectStatus.NEW]: "bg-kanban-new",
-    [ProjectStatus.IN_PROGRESS]: "bg-kanban-progress",
-    [ProjectStatus.IN_PRODUCTION]: "bg-kanban-production",
-    [ProjectStatus.ACTIVE]: "bg-kanban-active",
-  };
-  
-  const paymentStatusIcon = {
-    [PaymentStatus.PAID]: <CheckCircle className="h-4 w-4 text-green-500" />,
-    [PaymentStatus.PENDING]: <Clock className="h-4 w-4 text-yellow-500" />,
-    [PaymentStatus.OVERDUE]: <AlertCircle className="h-4 w-4 text-destructive" />,
-  };
-  
-  const paymentStatusLabel = {
-    [PaymentStatus.PAID]: "Pago",
-    [PaymentStatus.PENDING]: "Pendente",
-    [PaymentStatus.OVERDUE]: "Em Atraso",
-  };
+  const [name, setName] = useState(project.name);
+  const [client, setClient] = useState(project.client);
+  const [totalValue, setTotalValue] = useState(project.totalValue.toString());
+  const [status, setStatus] = useState(project.status);
+  const [deadline, setDeadline] = useState<Date | undefined>(project.deadline);
+  const [description, setDescription] = useState(project.description);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
-  const taskCompletionRate = tasks.length 
-    ? Math.round((tasks.filter(task => task.completed).length / tasks.length) * 100) 
-    : 0;
+  useEffect(() => {
+    loadTasks();
+    fetchUsers();
+  }, [project.id]);
 
-  const handleAddTask = () => {
-    if (!newTaskTitle.trim()) {
-      toast.error("O título da tarefa não pode estar vazio");
-      return;
-    }
-
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      title: newTaskTitle,
-      completed: false,
-      projectId: project.id
-    };
-
-    setTasks([...tasks, newTask]);
-    setNewTaskTitle("");
-    toast.success("Tarefa adicionada com sucesso");
-  };
-
-  const toggleTaskCompletion = (taskId: string) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId
-        ? { ...task, completed: !task.completed }
-        : task
-    ));
-    toast.success("Status da tarefa atualizado");
-  };
-
-  const deleteTask = (taskId: string) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
-    toast.success("Tarefa removida com sucesso");
-  };
-
-  const handleEditClick = () => {
-    setEditing(true);
-    setActiveTab("overview");
-  };
-
-  const handleCancelEdit = () => {
-    setEditing(false);
-    setEditForm({
-      name: project.name,
-      client: project.client,
-      description: project.description || "",
-      totalValue: project.totalValue,
-      deadline: project.deadline
-    });
-  };
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setEditForm(prev => ({
-      ...prev,
-      [name]: name === 'totalValue' ? parseFloat(value) : value
-    }));
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editForm.name.trim() || !editForm.client.trim() || editForm.totalValue <= 0) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
-
+  const loadTasks = async () => {
+    setLoadingTasks(true);
     try {
-      // If it's a temporary project (client-side only)
-      if (typeof project.id === 'string' && project.id.startsWith('temp-')) {
-        const updatedProject = {
-          ...project,
-          name: editForm.name,
-          client: editForm.client,
-          description: editForm.description,
-          totalValue: editForm.totalValue,
-          deadline: editForm.deadline
-        };
-        
-        if (onProjectUpdate) {
-          onProjectUpdate(updatedProject);
-        }
-        
-        setEditing(false);
-        toast.success("Projeto atualizado com sucesso");
-        return;
-      }
-      
-      // If it's a database project
-      const success = await updateProject(String(project.id), {
-        name: editForm.name,
-        client: editForm.client,
-        description: editForm.description,
-        total_value: editForm.totalValue,
-        deadline: editForm.deadline
-      });
-      
-      if (success) {
-        const updatedProject = {
-          ...project,
-          name: editForm.name,
-          client: editForm.client,
-          description: editForm.description,
-          totalValue: editForm.totalValue,
-          deadline: editForm.deadline
-        };
-        
-        if (onProjectUpdate) {
-          onProjectUpdate(updatedProject);
-        }
-        
-        setEditing(false);
-        toast.success("Projeto atualizado com sucesso");
+      const tasksData = await fetchTasks(project.id);
+      setTasks(tasksData);
+    } catch (error) {
+      toast.error("Erro ao carregar tarefas");
+      console.error("Error loading tasks:", error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (error) {
+        toast.error("Erro ao carregar usuários");
+        console.error("Error fetching users:", error);
       } else {
-        toast.error("Erro ao atualizar o projeto");
+        setUsers(data as User[]);
       }
     } catch (error) {
-      console.error("Error updating project:", error);
-      toast.error("Erro ao atualizar o projeto");
+      toast.error("Erro ao carregar usuários");
+      console.error("Error fetching users:", error);
     }
   };
 
-  const handleActionSelected = (actionId: string, project: ProjectWithPayments) => {
-    // Add your action handling logic here
+  const handleUpdateProject = async () => {
+    try {
+      const updatedProject = {
+        ...project,
+        name,
+        client,
+        totalValue: parseFloat(totalValue),
+        status,
+        deadline,
+        description
+      };
+
+      const { error } = await supabase
+        .from('projects')
+        .update(updatedProject)
+        .eq('id', project.id);
+
+      if (error) {
+        toast.error("Erro ao atualizar projeto");
+        console.error("Error updating project:", error);
+      } else {
+        toast.success("Projeto atualizado com sucesso");
+        onProjectUpdate(updatedProject);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      toast.error("Erro ao atualizar projeto");
+      console.error("Error updating project:", error);
+    }
   };
 
-  const monthlyValue = project.isRecurring ? project.totalValue : undefined;
-  const installmentValue = project.isInstallment && project.installmentCount 
-    ? (project.totalValue / project.installmentCount) 
-    : undefined;
+  const handleStatusChange = (newStatus: ProjectStatus) => {
+    setStatus(newStatus);
+  };
+
+  const handleTaskCreate = (newTask: Task) => {
+    setTasks(prevTasks => [...prevTasks, newTask]);
+  };
+
+  const handleTaskUpdate = async (task: Task) => {
+    try {
+      const success = await updateTask(task);
+      
+      if (success) {
+        setTasks(prevTasks => 
+          prevTasks.map(t => t.id === task.id ? task : t)
+        );
+        toast.success("Tarefa atualizada com sucesso");
+        setIsTaskDialogOpen(false);
+      } else {
+        toast.error("Erro ao atualizar tarefa");
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Erro ao atualizar tarefa");
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const success = await deleteTask(taskId);
+      
+      if (success) {
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+        toast.success("Tarefa excluída com sucesso");
+      } else {
+        toast.error("Erro ao excluir tarefa");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Erro ao excluir tarefa");
+    }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskDialogOpen(true);
+  };
+
+  const handleTaskCompleteToggle = async (task: Task) => {
+    try {
+      const updatedTask = { ...task, completed: !task.completed };
+      const success = await updateTask(updatedTask);
+      
+      if (success) {
+        setTasks(prevTasks => 
+          prevTasks.map(t => t.id === task.id ? updatedTask : t)
+        );
+        toast.success("Status da tarefa atualizado");
+      } else {
+        toast.error("Erro ao atualizar status da tarefa");
+      }
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      toast.error("Erro ao atualizar status da tarefa");
+    }
+  };
+
+  const getAssignedUserName = (userId: string | undefined): string => {
+    if (!userId) return 'Não atribuído';
+    const user = users.find(u => u.id === userId);
+    return user ? user.name || user.email : 'Usuário Desconhecido';
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {project.name} 
-              <Badge variant="outline" className={statusColors[project.status]}>
-                {statusLabels[project.status]}
-              </Badge>
-            </div>
-            <Button onClick={handleEditClick} variant="outline" size="sm" className="flex items-center gap-1">
-              <Edit className="h-4 w-4" />
-              Editar Projeto
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Detalhes do Projeto</DialogTitle>
+          <DialogDescription>
+            Visualize e edite os detalhes do projeto.
+          </DialogDescription>
         </DialogHeader>
-        
-        {editing ? (
-          <div className="space-y-4 py-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">Nome do Projeto</label>
-                  <Input 
-                    id="name"
-                    name="name"
-                    value={editForm.name}
-                    onChange={handleFormChange}
-                    placeholder="Nome do projeto"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="client" className="text-sm font-medium">Cliente</label>
-                  <Input 
-                    id="client"
-                    name="client"
-                    value={editForm.client}
-                    onChange={handleFormChange}
-                    placeholder="Nome do cliente"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="totalValue" className="text-sm font-medium">Valor Total</label>
-                  <Input 
-                    id="totalValue"
-                    name="totalValue"
-                    type="number"
-                    value={editForm.totalValue}
-                    onChange={handleFormChange}
-                    min={0}
-                    step={0.01}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="deadline" className="text-sm font-medium">Prazo Final</label>
-                  <Input 
-                    id="deadline"
-                    name="deadline"
-                    type="date"
-                    value={editForm.deadline ? new Date(editForm.deadline).toISOString().split('T')[0] : ''}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setEditForm(prev => ({
-                          ...prev,
-                          deadline: new Date(e.target.value)
-                        }));
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">Descrição</label>
-                <Textarea 
-                  id="description"
-                  name="description"
-                  value={editForm.description}
-                  onChange={handleFormChange}
-                  placeholder="Descrição do projeto"
-                  rows={4}
-                />
-              </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Nome do Projeto</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleCancelEdit}>Cancelar</Button>
-              <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+
+            <div>
+              <Label htmlFor="client">Cliente</Label>
+              <Input
+                id="client"
+                value={client}
+                onChange={(e) => setClient(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="totalValue">Valor Total (R$)</Label>
+              <Input
+                id="totalValue"
+                type="number"
+                value={totalValue}
+                onChange={(e) => setTotalValue(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={handleStatusChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ProjectStatus.NEW}>Novo</SelectItem>
+                  <SelectItem value={ProjectStatus.IN_PROGRESS}>Em Andamento</SelectItem>
+                  <SelectItem value={ProjectStatus.IN_PRODUCTION}>Em Produção</SelectItem>
+                  <SelectItem value={ProjectStatus.ACTIVE}>Ativo</SelectItem>
+                  <SelectItem value={ProjectStatus.COMPLETED}>Concluído</SelectItem>
+                  <SelectItem value={ProjectStatus.CANCELLED}>Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Prazo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deadline && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
-        ) : (
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-              <TabsTrigger value="tasks">Tarefas</TabsTrigger>
-              <TabsTrigger value="team">Equipe</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-                      Prazo
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`font-medium ${isOverdue ? 'text-destructive' : ''}`}>
-                      {format(project.deadline, 'dd MMMM yyyy', { locale: ptBR })}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {isOverdue ? 'Em atraso' : 'No prazo'}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Valor Total
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-medium">
-                      {new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(project.totalValue)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Cliente: {project.client}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Descrição
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{project.description}</p>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Criado em {format(project.createdAt, 'dd MMMM yyyy', { locale: ptBR })}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Progresso de Pagamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Progresso</span>
-                    <span>{progressPercentage}%</span>
-                  </div>
-                  <Progress value={progressPercentage} className="h-2" />
-                  <div className="flex justify-between text-sm">
-                    <span>Pago: {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL' 
-                    }).format(project.paidAmount)}</span>
-                    <span>Restante: {new Intl.NumberFormat('pt-BR', { 
-                      style: 'currency', 
-                      currency: 'BRL' 
-                    }).format(project.remainingAmount)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="payments" className="space-y-4 py-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Pagamentos</h3>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Pagamento
-                </Button>
-              </div>
-              
-              {project.payments.length > 0 ? (
-                <div className="space-y-3">
-                  {project.payments.map(payment => (
-                    <Card key={payment.id}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{payment.description}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Vencimento: {format(payment.dueDate, 'dd MMM yyyy', { locale: ptBR })}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">
-                            {new Intl.NumberFormat('pt-BR', { 
-                              style: 'currency', 
-                              currency: 'BRL' 
-                            }).format(payment.amount)}
-                          </div>
-                          <div className="flex items-center justify-end mt-1">
-                            {paymentStatusIcon[payment.status]}
-                            <span className="text-xs ml-1">{paymentStatusLabel[payment.status]}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum pagamento registrado para este projeto.
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="tasks" className="space-y-4 py-4">
-              <div className="flex flex-col space-y-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <List className="h-4 w-4" />
-                      Taxa de Conclusão
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Progresso</span>
-                      <span>{taskCompletionRate}%</span>
-                    </div>
-                    <Progress value={taskCompletionRate} className="h-2" />
-                    <div className="text-sm">
-                      {tasks.filter(task => task.completed).length} de {tasks.length} tarefas concluídas
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <List className="h-4 w-4" />
-                      Tarefas do Projeto
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Adicionar nova tarefa" 
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                      />
-                      <Button onClick={handleAddTask} size="icon">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
 
-                    {tasks.length > 0 ? (
-                      <div className="space-y-2">
-                        {tasks.map(task => (
-                          <div key={task.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-accent/10 group">
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => toggleTaskCompletion(task.id)}
-                                className="focus:outline-none"
-                              >
-                                {task.completed ? (
-                                  <CheckSquare className="h-5 w-5 text-primary" />
-                                ) : (
-                                  <Square className="h-5 w-5 text-muted-foreground" />
-                                )}
-                              </button>
-                              <span className={task.completed ? "line-through text-muted-foreground" : ""}>
-                                {task.title}
-                              </span>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => deleteTask(task.id)}
-                              className="opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Nenhuma tarefa cadastrada para este projeto.
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="team" className="space-y-4 py-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Membros da Equipe</h3>
-                <Button size="sm">
-                  <Users className="h-4 w-4 mr-2" />
-                  Gerenciar Equipe
-                </Button>
-              </div>
-              
-              {teamMembers.length > 0 ? (
-                <div className="space-y-3">
-                  {teamMembers.map(member => (
-                    <Card key={member.id}>
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <Avatar>
-                          <AvatarImage src={member.avatarUrl} alt={member.name} />
-                          <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{member.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {member.email}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="ml-auto">
-                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  ))}
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Tarefas</h3>
+            <Button onClick={() => setIsCreateTaskOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Tarefa
+            </Button>
+          </div>
+
+          {loadingTasks ? (
+            <div className="text-center text-muted-foreground">Carregando tarefas...</div>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map(task => (
+                <div key={task.id} className="border rounded-md p-3 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`task-${task.id}`}
+                      checked={task.completed}
+                      onCheckedChange={() => handleTaskCompleteToggle(task)}
+                    />
+                    <Label htmlFor={`task-${task.id}`} className="text-sm line-clamp-1">
+                      {task.title}
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-muted-foreground">
+                      {getAssignedUserName(task.assignedTo)}
+                    </span>
+                    <Button variant="ghost" size="icon" onClick={() => handleTaskClick(task)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum membro atribuído a este projeto.
-                </div>
+              ))}
+              {tasks.length === 0 && (
+                <div className="text-center text-muted-foreground">Nenhuma tarefa encontrada.</div>
               )}
-            </TabsContent>
-          </Tabs>
-        )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 flex justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleUpdateProject} className="ml-2">
+            Salvar
+          </Button>
+        </div>
       </DialogContent>
+
+      <CreateTaskDialog
+        open={isCreateTaskOpen}
+        onOpenChange={setIsCreateTaskOpen}
+        projectId={project.id}
+        onSubmit={handleTaskCreate}
+        users={users}
+      />
+
+      {selectedTask && (
+        <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Tarefa</DialogTitle>
+              <DialogDescription>
+                Atualize os detalhes da tarefa.
+              </DialogDescription>
+            </DialogHeader>
+
+            <TaskDialogContent
+              task={selectedTask}
+              onUpdate={handleTaskUpdate}
+              onClose={() => setIsTaskDialogOpen(false)}
+              users={users}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
+
+interface TaskDialogContentProps {
+  task: Task;
+  onUpdate: (task: Task) => void;
+  onClose: () => void;
+  users: User[];
+}
+
+const TaskDialogContent = ({ task, onUpdate, onClose, users }: TaskDialogContentProps) => {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || '');
+  const [dueDate, setDueDate] = useState<Date | undefined>(task.dueDate ? new Date(task.dueDate) : undefined);
+  const [assignedTo, setAssignedTo] = useState(task.assignedTo || '');
+
+  const handleSubmit = async () => {
+    const updatedTask = {
+      ...task,
+      title,
+      description,
+      dueDate: dueDate ? dueDate.toISOString() : undefined,
+      assignedTo: assignedTo || undefined
+    };
+    onUpdate(updatedTask);
+    onClose();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="title">Título</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="description">Descrição</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label>Data de Vencimento</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !dueDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dueDate ? format(dueDate, "dd/MM/yyyy") : <span>Selecione uma data</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dueDate}
+              onSelect={setDueDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div>
+        <Label>Atribuir a</Label>
+        <Select value={assignedTo} onValueChange={setAssignedTo}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione um usuário" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Ninguém</SelectItem>
+            {users.map(user => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.name || user.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button onClick={handleSubmit} className="ml-2">
+          Salvar
+        </Button>
+      </div>
+    </div>
+  );
+};

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +40,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -359,6 +359,9 @@ export default function CreateProjectDialog({
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Novo Projeto</DialogTitle>
+          <DialogDescription>
+            Preencha os dados para criar um novo projeto
+          </DialogDescription>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -368,7 +371,7 @@ export default function CreateProjectDialog({
             <TabsTrigger value="costs">Custos</TabsTrigger>
           </TabsList>
           
-          <ScrollArea className="max-h-[70vh]">
+          <ScrollArea className="max-h-[70vh] overflow-y-auto">
             <form onSubmit={handleSubmit} className="space-y-4 px-1 py-4">
               <TabsContent value="details" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
