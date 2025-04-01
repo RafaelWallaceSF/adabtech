@@ -240,6 +240,10 @@ export default function Payments() {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleAddPayment = async () => {
+    // Implement logic to add a new payment
+  };
+
   const allPayments = projects.flatMap(project => 
     project.payments.map(payment => ({
       ...payment,

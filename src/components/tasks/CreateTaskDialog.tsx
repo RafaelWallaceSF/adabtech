@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -75,23 +74,21 @@ export default function CreateTaskDialog({
     setLoading(true);
     try {
       const tempId = `temp-${Date.now()}`;
-      const newTask: Task = {
-        id: tempId,
+      const taskData = {
         title,
         description,
-        dueDate: dueDate?.toISOString(),
-        projectId,
-        assignedTo,
         completed: false,
-        createdAt: new Date().toISOString()
+        projectId: projectId || "",
+        dueDate: dueDate ? dueDate.toISOString() : undefined,
+        assignedTo: assignedTo || undefined
       };
 
-      onSubmit(newTask);
+      onSubmit(taskData);
       
       const savedTask = await createTask({
         title,
         description,
-        due_date: dueDate?.toISOString(),
+        due_date: dueDate ? dueDate.toISOString() : undefined,
         project_id: projectId,
         assigned_to: assignedTo,
         completed: false

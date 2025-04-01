@@ -26,7 +26,7 @@ const Team = () => {
     const checkIfAdmin = async () => {
       if (!user) return;
       
-      if (user.email === "admin@exemple.com.br") {
+      if (user.email === "admin@adabtech.com") {
         setIsAdmin(true);
         return;
       }
@@ -216,6 +216,7 @@ const Team = () => {
         onOpenChange={setIsEditDialogOpen}
         onUserUpdated={handleUserUpdated}
         user={selectedUser}
+        isAdmin={isAdmin}
       />
     </div>
   );

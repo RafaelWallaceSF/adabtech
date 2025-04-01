@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -47,9 +46,10 @@ interface EditUserDialogProps {
   onOpenChange: (open: boolean) => void;
   onUserUpdated?: () => void;
   user: User | null;
+  isAdmin: boolean;
 }
 
-export function EditUserDialog({ open, onOpenChange, onUserUpdated, user }: EditUserDialogProps) {
+export function EditUserDialog({ open, onOpenChange, onUserUpdated, user, isAdmin }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormValues>({
@@ -125,7 +125,7 @@ export function EditUserDialog({ open, onOpenChange, onUserUpdated, user }: Edit
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome completo" {...field} />
+                    <Input placeholder="Nome completo" {...field} readOnly={!isAdmin} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,7 +139,7 @@ export function EditUserDialog({ open, onOpenChange, onUserUpdated, user }: Edit
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="email@exemplo.com" {...field} />
+                    <Input type="email" placeholder="email@exemplo.com" {...field} readOnly={!isAdmin} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -155,6 +155,7 @@ export function EditUserDialog({ open, onOpenChange, onUserUpdated, user }: Edit
                   <Select
                     defaultValue={field.value}
                     onValueChange={field.onChange}
+                    disabled={!isAdmin}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -180,9 +181,18 @@ export function EditUserDialog({ open, onOpenChange, onUserUpdated, user }: Edit
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Salvando..." : "Salvar"}
-              </Button>
+              {isAdmin ? (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : "Salvar"}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Fechar
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>

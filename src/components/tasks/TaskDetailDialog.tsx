@@ -1,262 +1,129 @@
-
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Task, User } from "@/types";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { updateTask, fetchProjects } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Task } from "@/types";
 
 interface TaskDetailDialogProps {
-  task: Task;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTaskUpdate: (task: Task) => void;
-  onStatusToggle: (taskId: string, completed: boolean) => Promise<void>;
-  users: User[];
+  task: Task | null;
+  onTaskUpdated?: () => void;
+  onTaskDeleted?: () => void;
 }
 
-export default function TaskDetailDialog({
-  task,
-  open,
-  onOpenChange,
-  onTaskUpdate,
-  onStatusToggle,
-  users
-}: TaskDetailDialogProps) {
-  const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description || "");
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueDate ? new Date(task.dueDate) : undefined
-  );
-  const [projectId, setProjectId] = useState<string>(task.projectId);
-  const [assignedTo, setAssignedTo] = useState<string | undefined>(task.assignedTo);
-  const [completed, setCompleted] = useState(task.completed || false);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(false);
+export function TaskDetailDialog({ open, onOpenChange, task, onTaskUpdated, onTaskDeleted }: TaskDetailDialogProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      loadProjects();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    // Reset form when task changes
-    setTitle(task.title);
-    setDescription(task.description || "");
-    setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
-    setProjectId(task.projectId);
-    setAssignedTo(task.assignedTo);
-    setCompleted(task.completed || false);
-  }, [task]);
-
-  const loadProjects = async () => {
-    setLoadingProjects(true);
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Sem data definida';
     try {
-      const projectsData = await fetchProjects();
-      setProjects(projectsData.map(p => ({ id: p.id, name: p.name })));
+      const date = new Date(dateString);
+      return format(date, 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR });
     } catch (error) {
-      console.error("Error loading projects:", error);
-      toast.error("Erro ao carregar projetos");
-    } finally {
-      setLoadingProjects(false);
+      console.error("Erro ao formatar a data:", error);
+      return 'Data inválida';
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !projectId) {
-      toast.error("Preencha os campos obrigatórios");
-      return;
-    }
+  const handleDeleteTask = async () => {
+    if (!task) return;
 
-    setLoading(true);
+    setIsDeleting(true);
+
     try {
-      const updatedTask: Task = {
-        ...task,
-        title,
-        description,
-        dueDate: dueDate?.toISOString(),
-        projectId,
-        assignedTo,
-        completed
-      };
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', task.id);
 
-      const success = await updateTask(task.id, updatedTask);
-      if (success) {
-        onTaskUpdate(updatedTask);
-        toast.success("Tarefa atualizada com sucesso");
-        onOpenChange(false);
-      } else {
-        toast.error("Erro ao atualizar tarefa");
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast.error("Erro ao atualizar tarefa");
+
+      toast.success("Tarefa excluída com sucesso!");
+
+      if (onTaskDeleted) {
+        onTaskDeleted();
+      }
+
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error("Erro ao excluir tarefa: " + (error.message || "Erro desconhecido"));
+      console.error(error);
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
   };
 
-  const handleToggleStatus = async () => {
-    try {
-      const newStatus = !completed;
-      await onStatusToggle(task.id, newStatus);
-      setCompleted(newStatus);
-    } catch (error) {
-      console.error("Error toggling task status:", error);
+  const handleActionSelected = (actionId: string) => {
+    if (actionId === 'delete' && task) {
+      handleDeleteTask();
     }
-  };
-
-  const getProjectName = (id: string): string => {
-    const project = projects.find(p => p.id === id);
-    return project ? project.name : "Projeto não encontrado";
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-xl">Detalhes da Tarefa</DialogTitle>
+          <DialogTitle>{task?.title}</DialogTitle>
+          <DialogDescription>
+            Detalhes da tarefa.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="completed" 
-                checked={completed} 
-                onCheckedChange={handleToggleStatus}
-              />
-              <Label htmlFor="completed" className="text-sm font-medium">
-                {completed ? "Concluída" : "Pendente"}
-              </Label>
-            </div>
+        <div className="grid gap-4 py-4">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium leading-none">Status:</p>
+            {task?.completed ? (
+              <Badge variant="outline">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Concluída
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Pendente
+              </Badge>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título da tarefa"
-              required
-            />
+          <div className="space-y-1">
+            <p className="text-sm font-medium leading-none">Descrição:</p>
+            <p className="text-sm text-muted-foreground">{task?.description || "Nenhuma descrição fornecida."}</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrição da tarefa"
-              rows={3}
-            />
+          <div className="space-y-1">
+            <p className="text-sm font-medium leading-none">Data de entrega:</p>
+            <p className="text-sm text-muted-foreground">{formatDate(task?.dueDate)}</p>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Data de Vencimento</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  id="dueDate"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "dd/MM/yyyy") : <span>Selecione uma data</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="project">Projeto *</Label>
-            <Select 
-              value={projectId} 
-              onValueChange={(value) => setProjectId(value)}
-              disabled={loadingProjects}
-            >
-              <SelectTrigger id="project">
-                <SelectValue placeholder={loadingProjects ? "Carregando..." : "Selecione um projeto"}>
-                  {projectId ? getProjectName(projectId) : "Selecione um projeto"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {loadingProjects ? (
-                  <div className="flex items-center justify-center p-2">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span>Carregando projetos...</span>
-                  </div>
-                ) : (
-                  projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="assignedTo">Desenvolvedor Responsável</Label>
-            <Select 
-              value={assignedTo || ""} 
-              onValueChange={(value) => setAssignedTo(value || undefined)}
-            >
-              <SelectTrigger id="assignedTo">
-                <SelectValue placeholder="Selecione um desenvolvedor">
-                  {assignedTo 
-                    ? users.find(user => user.id === assignedTo)?.name || "Desenvolvedor não encontrado" 
-                    : "Selecione um desenvolvedor"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
-                {users.filter(user => user.role === 'developer').map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </div>
-        </form>
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={isDeleting}
+            onClick={() => handleActionSelected('delete')}
+          >
+            {isDeleting ? "Excluindo..." : "Excluir Tarefa"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

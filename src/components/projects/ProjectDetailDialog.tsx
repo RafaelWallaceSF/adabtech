@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -196,6 +195,10 @@ export default function ProjectDetailDialog({
       console.error("Error updating project:", error);
       toast.error("Erro ao atualizar o projeto");
     }
+  };
+
+  const handleActionSelected = (actionId: string, project: ProjectWithPayments) => {
+    // Add your action handling logic here
   };
 
   const monthlyValue = project.isRecurring ? project.totalValue : undefined;
