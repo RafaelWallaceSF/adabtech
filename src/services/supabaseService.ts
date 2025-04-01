@@ -1,3 +1,4 @@
+
 // This file re-exports all Supabase-related services
 import { mapSupabaseProject, mapSupabasePayment, mapSupabaseTask, mapSupabaseUser } from './supabase/mappers';
 import { 
@@ -30,7 +31,8 @@ import {
   uploadMultipleFiles,
   getProjectAttachments,
   deleteProjectAttachment,
-  getFileUrl
+  getFileUrl,
+  ProjectAttachment  // Add this import for the interface
 } from './supabase/attachmentService';
 
 // Re-export everything
@@ -71,5 +73,6 @@ export {
   uploadMultipleFiles,
   getProjectAttachments,
   deleteProjectAttachment,
-  getFileUrl
+  getFileUrl,
+  ProjectAttachment  // Add this export for the interface
 };
