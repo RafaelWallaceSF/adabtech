@@ -2,15 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, File, Download, Trash2, ArrowUpCircle } from "lucide-react";
+import { UploadCloud, File, Download, Trash2, ArrowUpCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { 
   ProjectAttachment, 
   getProjectAttachments, 
   uploadProjectFile, 
+  uploadMultipleFiles,
   deleteProjectAttachment,
   getFileUrl
-} from "@/services/supabase/attachmentService";
+} from "@/services/supabaseService";
 import { Input } from '@/components/ui/input';
 import { formatFileSize } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import DeleteConfirmDialog from "@/components/ui/delete-confirm-dialog";
 
 interface ProjectAttachmentsProps {
   projectId: string;
@@ -34,6 +49,9 @@ export default function ProjectAttachments({ projectId }: ProjectAttachmentsProp
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [failedUploads, setFailedUploads] = useState<{ file: string; error: string }[]>([]);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<ProjectAttachment | null>(null);
 
   useEffect(() => {
     loadAttachments();
@@ -67,65 +85,65 @@ export default function ProjectAttachments({ projectId }: ProjectAttachmentsProp
 
     setIsUploading(true);
     setUploadProgress(0);
-    
-    // Array para armazenar promessas de upload
-    const uploadPromises: Promise<void>[] = [];
-    const totalFiles = selectedFiles.length;
-    let completedUploads = 0;
-    
-    // Para cada arquivo selecionado
-    for (const file of selectedFiles) {
-      const uploadPromise = uploadProjectFile(projectId, file)
-        .then((response) => {
-          completedUploads++;
-          setUploadProgress(Math.round((completedUploads / totalFiles) * 100));
-          
-          if (response.success && response.attachment) {
-            setAttachments(prev => [response.attachment!, ...prev]);
-          } else {
-            throw new Error(response.error || "Erro desconhecido no upload");
-          }
-        })
-        .catch((error) => {
-          console.error(`Erro no upload do arquivo ${file.name}:`, error);
-          toast.error(`Falha no upload de ${file.name}`);
-        });
-      
-      uploadPromises.push(uploadPromise);
-    }
+    setFailedUploads([]);
     
     try {
-      // Aguardar todos os uploads
-      await Promise.all(uploadPromises);
-      toast.success(`${totalFiles} ${totalFiles === 1 ? 'arquivo enviado' : 'arquivos enviados'} com sucesso`);
-      setSelectedFiles([]);
-      setShowUploadDialog(false);
+      // Upload de múltiplos arquivos
+      const result = await uploadMultipleFiles(projectId, selectedFiles);
+      
+      if (result.success) {
+        // Adicionar os novos anexos à lista existente
+        setAttachments(prev => [...result.attachments, ...prev]);
+        
+        // Exibir mensagem de sucesso
+        const uploadCount = result.attachments.length;
+        toast.success(`${uploadCount} ${uploadCount === 1 ? 'arquivo enviado' : 'arquivos enviados'} com sucesso`);
+        
+        // Se houver falhas, exibir na interface
+        if (result.failures.length > 0) {
+          setFailedUploads(result.failures);
+          toast.error(`${result.failures.length} arquivos falharam no upload`);
+        } else {
+          // Fechar o diálogo se tudo foi bem sucedido
+          setShowUploadDialog(false);
+        }
+      } else {
+        // Todos os uploads falharam
+        setFailedUploads(result.failures);
+        toast.error("Falha ao enviar os arquivos");
+      }
     } catch (error) {
-      console.error("Erro durante o processo de upload:", error);
-      toast.error("Ocorreram erros durante o upload");
+      console.error("Erro durante o upload:", error);
+      toast.error("Ocorreu um erro inesperado durante o upload");
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setSelectedFiles([]);
     }
   };
 
-  const handleDelete = async (attachment: ProjectAttachment) => {
-    const confirmed = window.confirm(`Tem certeza que deseja excluir o arquivo "${attachment.fileName}"?`);
+  const confirmDelete = (attachment: ProjectAttachment) => {
+    setAttachmentToDelete(attachment);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!attachmentToDelete) return;
     
-    if (confirmed) {
-      try {
-        const success = await deleteProjectAttachment(attachment);
-        
-        if (success) {
-          setAttachments(prev => prev.filter(a => a.id !== attachment.id));
-          toast.success("Arquivo excluído com sucesso");
-        } else {
-          toast.error("Não foi possível excluir o arquivo");
-        }
-      } catch (error) {
-        console.error("Erro ao excluir arquivo:", error);
-        toast.error("Erro ao excluir arquivo");
+    try {
+      const success = await deleteProjectAttachment(attachmentToDelete);
+      
+      if (success) {
+        setAttachments(prev => prev.filter(a => a.id !== attachmentToDelete.id));
+        toast.success("Arquivo excluído com sucesso");
+      } else {
+        toast.error("Não foi possível excluir o arquivo");
       }
+    } catch (error) {
+      console.error("Erro ao excluir arquivo:", error);
+      toast.error("Erro ao excluir arquivo");
+    } finally {
+      setIsConfirmDeleteOpen(false);
+      setAttachmentToDelete(null);
     }
   };
 
@@ -200,6 +218,33 @@ export default function ProjectAttachments({ projectId }: ProjectAttachmentsProp
                         {uploadProgress}% completo
                       </div>
                     </div>
+                  )}
+                  
+                  {failedUploads.length > 0 && (
+                    <Alert variant="destructive" className="mt-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Erros no upload</AlertTitle>
+                      <AlertDescription>
+                        <div className="mt-2 max-h-32 overflow-y-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Arquivo</TableHead>
+                                <TableHead>Erro</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {failedUploads.map((failure, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium">{failure.file}</TableCell>
+                                  <TableCell>{failure.error}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </div>
               </div>
@@ -282,7 +327,7 @@ export default function ProjectAttachments({ projectId }: ProjectAttachmentsProp
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    onClick={() => handleDelete(attachment)}
+                    onClick={() => confirmDelete(attachment)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -292,6 +337,14 @@ export default function ProjectAttachments({ projectId }: ProjectAttachmentsProp
           </div>
         )}
       </CardContent>
+      
+      <DeleteConfirmDialog
+        open={isConfirmDeleteOpen}
+        onOpenChange={setIsConfirmDeleteOpen}
+        title="Excluir Arquivo"
+        description={`Tem certeza que deseja excluir o arquivo "${attachmentToDelete?.fileName}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+      />
     </Card>
   );
 }

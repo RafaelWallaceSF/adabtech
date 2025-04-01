@@ -79,6 +79,46 @@ export const uploadProjectFile = async (
   }
 };
 
+export const uploadMultipleFiles = async (
+  projectId: string,
+  files: File[]
+): Promise<{
+  success: boolean;
+  attachments: ProjectAttachment[];
+  failures: { file: string; error: string }[];
+}> => {
+  const results: ProjectAttachment[] = [];
+  const failures: { file: string; error: string }[] = [];
+
+  // Processar cada arquivo individualmente
+  for (const file of files) {
+    try {
+      const result = await uploadProjectFile(projectId, file);
+      
+      if (result.success && result.attachment) {
+        results.push(result.attachment);
+      } else {
+        failures.push({ 
+          file: file.name, 
+          error: result.error || 'Erro desconhecido' 
+        });
+      }
+    } catch (error) {
+      console.error(`Erro ao processar arquivo ${file.name}:`, error);
+      failures.push({ 
+        file: file.name, 
+        error: 'Exceção ao processar o arquivo' 
+      });
+    }
+  }
+
+  return {
+    success: results.length > 0,
+    attachments: results,
+    failures
+  };
+};
+
 export const getProjectAttachments = async (projectId: string): Promise<ProjectAttachment[]> => {
   try {
     const { data, error } = await supabase
