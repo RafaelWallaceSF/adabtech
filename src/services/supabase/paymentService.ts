@@ -4,52 +4,55 @@ import { Payment, PaymentStatus } from "@/types";
 import { mapSupabasePayment } from "./mappers";
 
 export const createPayment = async (payment: Omit<Payment, "id">): Promise<Payment | null> => {
-  const { data, error } = await supabase
-    .from("payments")
-    .insert({
-      project_id: payment.projectId,
-      amount: payment.amount,
-      due_date: payment.dueDate.toISOString(),
-      status: payment.status,
-      paid_date: payment.paidDate?.toISOString(),
-      description: payment.description
-    })
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("payments")
+      .insert({
+        project_id: payment.projectId,
+        amount: payment.amount,
+        due_date: payment.dueDate.toISOString(),
+        status: payment.status,
+        description: payment.description
+      })
+      .select()
+      .single();
 
-  if (error) {
-    console.error("Error creating payment:", error);
+    if (error) {
+      console.error("Error creating payment:", error);
+      return null;
+    }
+
+    return mapSupabasePayment(data);
+  } catch (error) {
+    console.error("Exception creating payment:", error);
     return null;
   }
-
-  return mapSupabasePayment(data);
 };
 
-export const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from("payments")
-    .update({ 
-      status: PaymentStatus.PAID, 
-      paid_date: new Date().toISOString() 
-    })
-    .eq("id", paymentId);
+export const markPaymentAsPaid = async (paymentId: string, paidDate: Date): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        status: "paid",
+        paid_date: paidDate.toISOString()
+      })
+      .eq("id", paymentId);
 
-  if (error) {
-    console.error("Error marking payment as paid:", error);
+    if (error) {
+      console.error("Error marking payment as paid:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Exception marking payment as paid:", error);
     return false;
   }
-
-  return true;
 };
 
 export const deletePayment = async (paymentId: string): Promise<boolean> => {
-  if (paymentId.startsWith('temp-')) {
-    return true;
-  }
-
   try {
-    console.log("Attempting to delete payment with ID:", paymentId);
-    
     const { error } = await supabase
       .from("payments")
       .delete()
@@ -60,7 +63,6 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
       return false;
     }
 
-    console.log("Payment successfully deleted");
     return true;
   } catch (error) {
     console.error("Exception deleting payment:", error);
@@ -68,20 +70,21 @@ export const deletePayment = async (paymentId: string): Promise<boolean> => {
   }
 };
 
-export const enableRealtimeForPayments = async (): Promise<void> => {
+export const enableRealtimeForPayments = (): void => {
   try {
-    // Enable realtime for payments table
-    await supabase.rpc('supabase_functions.enable_realtime', {
-      table_name: 'payments'
-    } as any);
-    
-    // Also enable realtime for clients table
-    await supabase.rpc('supabase_functions.enable_realtime', {
-      table_name: 'clients'
-    } as any);
-    
-    console.log("Realtime enabled for payments and clients tables");
+    const channel = supabase
+      .channel('public:payments')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'payments' 
+      }, (payload: any) => {
+        console.log("Payment change detected:", payload);
+      })
+      .subscribe();
+      
+    console.log("Realtime for payments enabled");
   } catch (error) {
-    console.error("Error enabling realtime:", error);
+    console.error("Error enabling realtime for payments:", error);
   }
 };

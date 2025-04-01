@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Project, ProjectStatus } from "@/types";
-import { ProjectWithPaymentDate, mapSupabaseProject } from "./mappers";
+import { Project, ProjectStatus, PaymentStatus } from "@/types";
+import { ProjectWithPaymentDate, mapSupabaseProject, mapSupabasePayment, mapSupabaseTask } from "./mappers";
 import { createPayment } from "./paymentService";
 
 export const updateProjectStatus = async (projectId: string, status: ProjectStatus): Promise<boolean> => {
@@ -80,7 +80,7 @@ export const createRecurringPayments = async (projectId: string): Promise<void> 
         projectId: project.id,
         amount: monthlyAmount,
         dueDate: dueDate,
-        status: "pending",
+        status: PaymentStatus.PENDING,
         description: `Pagamento ${i + 1} de ${installmentCount} - ${project.name}`
       });
     }
@@ -174,7 +174,7 @@ export const fetchProjectWithDetails = async (projectId: string) => {
     return project;
   }
 
-  const payments = paymentsData.map(mapSupabasePayment);
+  const payments = paymentsData.map(payment => mapSupabasePayment(payment));
 
   const { data: tasksData, error: tasksError } = await supabase
     .from("tasks")
@@ -189,7 +189,7 @@ export const fetchProjectWithDetails = async (projectId: string) => {
   const tasks = tasksData.map(task => mapSupabaseTask(task));
 
   const paidAmount = payments
-    .filter(payment => payment.status === "paid")
+    .filter(payment => payment.status === PaymentStatus.PAID)
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   return {

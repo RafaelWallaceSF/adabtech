@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectStatus, ProjectWithPayments, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon, CreditCard, DollarSign, Loader2, Percent, Repeat } from "lucide-react";
+import { CalendarIcon, CreditCard, DollarSign, Loader2, Percent, Repeat, User as UserIcon, UserPlus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -38,6 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ptBR } from "date-fns/locale";
 import { createProject } from "@/services/supabaseService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -82,6 +83,7 @@ export default function CreateProjectDialog({
   const [isInstallment, setIsInstallment] = useState(false);
   const [installmentCount, setInstallmentCount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
+  const [searchDeveloper, setSearchDeveloper] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -179,7 +181,8 @@ export default function CreateProjectDialog({
         isInstallment,
         installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
         paymentDate: isRecurring ? paymentDate : undefined,
-        projectCosts
+        projectCosts,
+        developerShares
       };
       
       onSubmit(tempProject);
@@ -187,7 +190,7 @@ export default function CreateProjectDialog({
       const projectData = {
         name,
         client: clients.find(c => c.id === selectedClientId)?.name || "",
-        client_id: selectedClientId,
+        clientId: selectedClientId,
         totalValue: parseFloat(totalValue),
         status: ProjectStatus.NEW,
         teamMembers: selectedTeamMembers,
@@ -199,9 +202,9 @@ export default function CreateProjectDialog({
         isInstallment,
         installmentCount: isInstallment ? parseInt(installmentCount) : undefined,
         paymentDate: isRecurring ? paymentDate : undefined,
-        developer_shares: developerShares,
-        project_costs: projectCosts,
-        total_cost: totalCost
+        developerShares,
+        projectCosts,
+        totalCost
       };
       
       console.log("Saving project to Supabase with data:", projectData);
@@ -245,6 +248,7 @@ export default function CreateProjectDialog({
     setMarketingCost("");
     setOtherCosts("");
     setActiveTab("details");
+    setSearchDeveloper("");
   };
   
   const toggleTeamMember = (userId: string) => {
@@ -312,6 +316,21 @@ export default function CreateProjectDialog({
     
     return ((revenue - totalCost) / revenue) * 100;
   };
+
+  const getDeveloperInitials = (name: string): string => {
+    if (!name) return "??";
+    
+    const parts = name.split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const filteredDevelopers = searchDeveloper
+    ? developers.filter(dev => 
+        (dev.name || '').toLowerCase().includes(searchDeveloper.toLowerCase()) || 
+        (dev.email || '').toLowerCase().includes(searchDeveloper.toLowerCase()))
+    : developers;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -431,7 +450,10 @@ export default function CreateProjectDialog({
                 </div>
                 
                 <div className="space-y-4 border rounded-lg p-4">
-                  <h3 className="font-semibold">Desenvolvedores</h3>
+                  <h3 className="font-semibold flex items-center">
+                    <UserIcon className="h-4 w-4 mr-2" />
+                    Desenvolvedores
+                  </h3>
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -460,33 +482,73 @@ export default function CreateProjectDialog({
                   </div>
                   
                   <div className="space-y-4">
-                    <Select onValueChange={(value) => toggleTeamMember(value)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione um desenvolvedor para adicionar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {loadingDevelopers ? (
-                          <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span>Carregando...</span>
-                          </div>
-                        ) : developers.length > 0 ? (
-                          developers.map((dev) => (
-                            <SelectItem 
-                              key={dev.id} 
-                              value={dev.id}
-                              disabled={selectedTeamMembers.includes(dev.id)}
-                            >
-                              {dev.name || dev.email}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="empty" disabled>
-                            Nenhum desenvolvedor encontrado
-                          </SelectItem>
+                    <div className="flex gap-2">
+                      <div className="relative flex-grow">
+                        <Input
+                          placeholder="Buscar desenvolvedor"
+                          value={searchDeveloper}
+                          onChange={(e) => setSearchDeveloper(e.target.value)}
+                          className="w-full"
+                        />
+                        {searchDeveloper && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                            onClick={() => setSearchDeveloper("")}
+                          >
+                            ×
+                          </Button>
                         )}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="icon" className="shrink-0">
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar desenvolvedor..." />
+                            <CommandEmpty>
+                              {loadingDevelopers ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span>Carregando...</span>
+                                </div>
+                              ) : (
+                                <div className="py-6 text-center text-sm">
+                                  Nenhum desenvolvedor encontrado
+                                </div>
+                              )}
+                            </CommandEmpty>
+                            
+                            <CommandGroup>
+                              {filteredDevelopers.map((dev) => (
+                                <CommandItem
+                                  key={dev.id}
+                                  onSelect={() => toggleTeamMember(dev.id)}
+                                  className="flex items-center"
+                                >
+                                  <Avatar className="h-6 w-6 mr-2">
+                                    <AvatarImage src={dev.avatarUrl || ''} alt={dev.name} />
+                                    <AvatarFallback>{getDeveloperInitials(dev.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <span>{dev.name || dev.email}</span>
+                                  <CheckIcon
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      selectedTeamMembers.includes(dev.id) ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     
                     {developers.length === 0 && !loadingDevelopers && (
                       <div className="text-sm text-amber-600 mt-2">
@@ -509,39 +571,46 @@ export default function CreateProjectDialog({
                     
                     {selectedTeamMembers.length > 0 && (
                       <div className="border rounded-md p-4 space-y-3">
-                        {selectedTeamMembers.map(devId => (
-                          <div key={devId} className="grid grid-cols-12 gap-2 items-center">
-                            <div className="col-span-5 truncate font-medium">
-                              {getDeveloperName(devId)}
-                            </div>
-                            <div className="col-span-5">
-                              <div className="flex items-center border rounded-md">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step={shareType === 'percentage' ? "0.1" : "0.01"}
-                                  value={developerShares[devId] || ""}
-                                  onChange={(e) => updateDeveloperShare(devId, e.target.value)}
-                                  className="border-0 focus-visible:ring-0 text-right pr-0"
-                                  placeholder="0"
-                                />
-                                <span className="pr-3 text-muted-foreground">
-                                  {shareType === 'percentage' ? '%' : 'R$'}
-                                </span>
+                        {selectedTeamMembers.map(devId => {
+                          const dev = developers.find(d => d.id === devId);
+                          return (
+                            <div key={devId} className="grid grid-cols-12 gap-2 items-center">
+                              <div className="col-span-5 truncate font-medium flex items-center">
+                                <Avatar className="h-6 w-6 mr-2">
+                                  <AvatarImage src={dev?.avatarUrl || ''} alt={dev?.name} />
+                                  <AvatarFallback>{getDeveloperInitials(dev?.name || '')}</AvatarFallback>
+                                </Avatar>
+                                {getDeveloperName(devId)}
+                              </div>
+                              <div className="col-span-5">
+                                <div className="flex items-center border rounded-md">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step={shareType === 'percentage' ? "0.1" : "0.01"}
+                                    value={developerShares[devId] || ""}
+                                    onChange={(e) => updateDeveloperShare(devId, e.target.value)}
+                                    className="border-0 focus-visible:ring-0 text-right pr-0"
+                                    placeholder="0"
+                                  />
+                                  <span className="pr-3 text-muted-foreground">
+                                    {shareType === 'percentage' ? '%' : 'R$'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="col-span-2 flex justify-end">
+                                <Button 
+                                  type="button"
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => toggleTeamMember(devId)}
+                                >
+                                  <span className="text-xs">×</span>
+                                </Button>
                               </div>
                             </div>
-                            <div className="col-span-2 flex justify-end">
-                              <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => toggleTeamMember(devId)}
-                              >
-                                <span className="text-xs">×</span>
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         
                         <div className="pt-2 border-t flex justify-between items-center">
                           <span className="font-medium">Total:</span>
@@ -840,15 +909,3 @@ export default function CreateProjectDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            type="submit"
-            onClick={handleSubmit}
-            disabled={getTotalShare() > 100 && shareType === 'percentage'}
-          >
-            Criar Projeto
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}

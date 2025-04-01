@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
+import { User, Client } from "@/types";
 import { mapSupabaseUser } from "./mappers";
 
 export const fetchUsers = async (): Promise<User[]> => {
@@ -16,7 +16,7 @@ export const fetchUsers = async (): Promise<User[]> => {
   return data.map(mapSupabaseUser);
 };
 
-export const fetchClients = async () => {
+export const fetchClients = async (): Promise<Client[]> => {
   const { data, error } = await supabase
     .from("clients")
     .select("*")
