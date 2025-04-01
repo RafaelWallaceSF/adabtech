@@ -1,8 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 
-export interface ProjectAttachment {
+export type ProjectAttachment = {
   id: string;
   projectId: string;
   fileName: string;
@@ -11,7 +10,7 @@ export interface ProjectAttachment {
   fileSize: number | null;
   createdAt: Date;
   createdBy: string | null;
-}
+};
 
 interface FileUploadResponse {
   success: boolean;
@@ -24,11 +23,9 @@ export const uploadProjectFile = async (
   file: File
 ): Promise<FileUploadResponse> => {
   try {
-    // Gerar um nome de arquivo único para evitar colisões
     const fileName = `${uuidv4()}-${file.name}`;
     const filePath = `${projectId}/${fileName}`;
     
-    // Upload do arquivo para o Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('project_attachments')
       .upload(filePath, file);
@@ -38,7 +35,6 @@ export const uploadProjectFile = async (
       return { success: false, error: uploadError.message };
     }
     
-    // Registrar o arquivo na tabela project_attachments usando a função RPC
     const { data: attachmentData, error: attachmentError } = await supabase
       .rpc('insert_project_attachment', {
         p_project_id: projectId,
@@ -52,7 +48,6 @@ export const uploadProjectFile = async (
     if (attachmentError || !attachmentData) {
       console.error("Erro ao registrar anexo:", attachmentError);
       
-      // Se falhar ao registrar no banco, tentar remover o arquivo do storage
       await supabase.storage
         .from('project_attachments')
         .remove([filePath]);
@@ -60,7 +55,6 @@ export const uploadProjectFile = async (
       return { success: false, error: attachmentError?.message || 'Falha ao salvar os dados do anexo' };
     }
     
-    // Mapear para o formato da interface
     const attachment: ProjectAttachment = {
       id: attachmentData.id,
       projectId: attachmentData.project_id,
@@ -90,7 +84,6 @@ export const uploadMultipleFiles = async (
   const results: ProjectAttachment[] = [];
   const failures: { file: string; error: string }[] = [];
 
-  // Processar cada arquivo individualmente
   for (const file of files) {
     try {
       const result = await uploadProjectFile(projectId, file);
@@ -149,7 +142,6 @@ export const getProjectAttachments = async (projectId: string): Promise<ProjectA
 
 export const deleteProjectAttachment = async (attachment: ProjectAttachment): Promise<boolean> => {
   try {
-    // Remover o arquivo do storage
     const { error: storageError } = await supabase.storage
       .from('project_attachments')
       .remove([attachment.filePath]);
@@ -159,7 +151,6 @@ export const deleteProjectAttachment = async (attachment: ProjectAttachment): Pr
       return false;
     }
     
-    // Remover o registro do banco de dados usando a função RPC
     const { error: dbError } = await supabase
       .rpc('delete_project_attachment', {
         p_attachment_id: attachment.id

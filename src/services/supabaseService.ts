@@ -32,8 +32,9 @@ import {
   getProjectAttachments,
   deleteProjectAttachment,
   getFileUrl,
-  ProjectAttachment  // Add this import for the interface
 } from './supabase/attachmentService';
+// Import type separately with the 'type' keyword
+import type { ProjectAttachment } from './supabase/attachmentService';
 
 // Re-export everything
 export {
@@ -74,5 +75,7 @@ export {
   getProjectAttachments,
   deleteProjectAttachment,
   getFileUrl,
-  ProjectAttachment  // Add this export for the interface
 };
+
+// Re-export the type separately
+export type { ProjectAttachment };
