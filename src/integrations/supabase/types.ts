@@ -265,7 +265,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_project_attachment: {
+        Args: {
+          p_attachment_id: string
+        }
+        Returns: undefined
+      }
+      get_project_attachments: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          project_id: string
+        }[]
+      }
+      insert_project_attachment: {
+        Args: {
+          p_project_id: string
+          p_file_name: string
+          p_file_path: string
+          p_file_type: string
+          p_file_size: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          project_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -29,7 +29,7 @@ export const uploadProjectFile = async (
     const filePath = `${projectId}/${fileName}`;
     
     // Upload do arquivo para o Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('project_attachments')
       .upload(filePath, file);
     
@@ -38,17 +38,15 @@ export const uploadProjectFile = async (
       return { success: false, error: uploadError.message };
     }
     
-    // Registrar o arquivo na tabela project_attachments
+    // Registrar o arquivo na tabela project_attachments usando a função RPC
     const { data: attachmentData, error: attachmentError } = await supabase
-      .from('project_attachments')
-      .insert({
-        project_id: projectId,
-        file_name: file.name,
-        file_path: filePath,
-        file_type: file.type,
-        file_size: file.size,
+      .rpc('insert_project_attachment', {
+        p_project_id: projectId,
+        p_file_name: file.name,
+        p_file_path: filePath,
+        p_file_type: file.type,
+        p_file_size: file.size
       })
-      .select()
       .single();
     
     if (attachmentError) {
@@ -84,17 +82,16 @@ export const uploadProjectFile = async (
 export const getProjectAttachments = async (projectId: string): Promise<ProjectAttachment[]> => {
   try {
     const { data, error } = await supabase
-      .from('project_attachments')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      .rpc('get_project_attachments', {
+        p_project_id: projectId
+      });
     
     if (error) {
       console.error("Erro ao buscar anexos:", error);
       return [];
     }
     
-    return data.map(item => ({
+    return data.map((item: any) => ({
       id: item.id,
       projectId: item.project_id,
       fileName: item.file_name,
@@ -122,11 +119,11 @@ export const deleteProjectAttachment = async (attachment: ProjectAttachment): Pr
       return false;
     }
     
-    // Remover o registro do banco de dados
+    // Remover o registro do banco de dados usando a função RPC
     const { error: dbError } = await supabase
-      .from('project_attachments')
-      .delete()
-      .eq('id', attachment.id);
+      .rpc('delete_project_attachment', {
+        p_attachment_id: attachment.id
+      });
     
     if (dbError) {
       console.error("Erro ao remover registro de anexo:", dbError);
