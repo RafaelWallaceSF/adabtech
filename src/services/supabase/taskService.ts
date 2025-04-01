@@ -25,16 +25,19 @@ export const fetchTasks = async (projectId: string): Promise<Task[]> => {
 
 export const createTask = async (task: Omit<Task, "id" | "createdAt">): Promise<Task | null> => {
   try {
+    // Mapeando os campos para o formato do Supabase
+    const supabaseTask = {
+      title: task.title,
+      completed: task.completed,
+      project_id: task.projectId,
+      description: task.description,
+      due_date: task.dueDate, // Aqui estamos usando o mesmo nome
+      assigned_to: task.assignedTo
+    };
+
     const { data, error } = await supabase
       .from("tasks")
-      .insert({
-        title: task.title,
-        completed: task.completed,
-        project_id: task.projectId,
-        description: task.description,
-        due_date: task.dueDate,
-        assigned_to: task.assignedTo
-      })
+      .insert(supabaseTask)
       .select()
       .single();
 
@@ -52,9 +55,28 @@ export const createTask = async (task: Omit<Task, "id" | "createdAt">): Promise<
 
 export const updateTask = async (task: Partial<Task> & { id: string }): Promise<boolean> => {
   try {
+    // Convertendo para o formato aceito pelo Supabase
+    const supabaseTask: any = { ...task };
+    
+    // Mapeando campos com nomes diferentes
+    if ('projectId' in task) {
+      supabaseTask.project_id = task.projectId;
+      delete supabaseTask.projectId;
+    }
+    
+    if ('dueDate' in task) {
+      supabaseTask.due_date = task.dueDate;
+      delete supabaseTask.dueDate;
+    }
+    
+    if ('assignedTo' in task) {
+      supabaseTask.assigned_to = task.assignedTo;
+      delete supabaseTask.assignedTo;
+    }
+
     const { error } = await supabase
       .from("tasks")
-      .update(task)
+      .update(supabaseTask)
       .eq("id", task.id);
     
     if (error) {

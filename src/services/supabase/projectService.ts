@@ -24,9 +24,77 @@ export const updateProjectStatus = async (projectId: string, newStatus: ProjectS
 
 export const updateProject = async (project: Partial<Project> & { id: string }): Promise<boolean> => {
   try {
+    // Convertendo para o formato aceito pelo Supabase
+    const supabaseProject: any = { ...project };
+    
+    // Convertendo datas para formato ISO string
+    if (project.deadline instanceof Date) {
+      supabaseProject.deadline = project.deadline.toISOString();
+    }
+    if (project.paymentDate instanceof Date) {
+      supabaseProject.payment_date = project.paymentDate.toISOString();
+      delete supabaseProject.paymentDate;
+    }
+    
+    // Mapeando campos com nomes diferentes
+    if ('clientId' in project) {
+      supabaseProject.client_id = project.clientId;
+      delete supabaseProject.clientId;
+    }
+    
+    if ('totalValue' in project) {
+      supabaseProject.total_value = project.totalValue;
+      delete supabaseProject.totalValue;
+    }
+    
+    if ('teamMembers' in project) {
+      supabaseProject.team_members = project.teamMembers;
+      delete supabaseProject.teamMembers;
+    }
+    
+    if ('isRecurring' in project) {
+      supabaseProject.is_recurring = project.isRecurring;
+      delete supabaseProject.isRecurring;
+    }
+    
+    if ('hasImplementationFee' in project) {
+      supabaseProject.has_implementation_fee = project.hasImplementationFee;
+      delete supabaseProject.hasImplementationFee;
+    }
+    
+    if ('implementationFee' in project) {
+      supabaseProject.implementation_fee = project.implementationFee;
+      delete supabaseProject.implementationFee;
+    }
+    
+    if ('isInstallment' in project) {
+      supabaseProject.is_installment = project.isInstallment;
+      delete supabaseProject.isInstallment;
+    }
+    
+    if ('installmentCount' in project) {
+      supabaseProject.installment_count = project.installmentCount;
+      delete supabaseProject.installmentCount;
+    }
+    
+    if ('developerShares' in project) {
+      supabaseProject.developer_shares = project.developerShares;
+      delete supabaseProject.developerShares;
+    }
+    
+    if ('projectCosts' in project) {
+      supabaseProject.project_costs = project.projectCosts;
+      delete supabaseProject.projectCosts;
+    }
+    
+    if ('totalCost' in project) {
+      supabaseProject.total_cost = project.totalCost;
+      delete supabaseProject.totalCost;
+    }
+
     const { error } = await supabase
       .from("projects")
-      .update(project)
+      .update(supabaseProject)
       .eq("id", project.id);
     
     if (error) {

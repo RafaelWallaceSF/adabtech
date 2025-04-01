@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,11 +330,15 @@ export default function CreateProjectDialog({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const filteredDevelopers = searchDeveloper
-    ? developers.filter(dev => 
-        (dev.name || '').toLowerCase().includes(searchDeveloper.toLowerCase()) || 
-        (dev.email || '').toLowerCase().includes(searchDeveloper.toLowerCase()))
-    : developers;
+  const filteredDevelopers = developers.filter(dev => {
+    if (!searchDeveloper) return true;
+    
+    const developerName = (dev.name || '').toLowerCase();
+    const developerEmail = (dev.email || '').toLowerCase();
+    const searchTerm = searchDeveloper.toLowerCase();
+    
+    return developerName.includes(searchTerm) || developerEmail.includes(searchTerm);
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -515,7 +518,11 @@ export default function CreateProjectDialog({
                         </PopoverTrigger>
                         <PopoverContent className="w-80 p-0">
                           <Command>
-                            <CommandInput placeholder="Buscar desenvolvedor..." />
+                            <CommandInput 
+                              placeholder="Buscar desenvolvedor..."
+                              value={searchDeveloper}
+                              onValueChange={setSearchDeveloper}
+                            />
                             <CommandEmpty>
                               {loadingDevelopers ? (
                                 <div className="flex items-center justify-center p-4">
