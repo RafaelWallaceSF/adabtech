@@ -43,6 +43,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -88,6 +94,7 @@ export default function CreateProjectDialog({
   const [installmentCount, setInstallmentCount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
   const [searchDeveloper, setSearchDeveloper] = useState("");
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -253,6 +260,7 @@ export default function CreateProjectDialog({
     setOtherCosts("");
     setActiveTab("details");
     setSearchDeveloper("");
+    setIsSearchDropdownOpen(false);
   };
   
   const toggleTeamMember = (userId: string) => {
@@ -339,6 +347,11 @@ export default function CreateProjectDialog({
     
     return developerName.includes(searchTerm) || developerEmail.includes(searchTerm);
   });
+
+  const selectDeveloperFromDropdown = (dev: User) => {
+    toggleTeamMember(dev.id);
+    setIsSearchDropdownOpen(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -492,23 +505,74 @@ export default function CreateProjectDialog({
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <div className="relative flex-grow">
-                        <Input
-                          placeholder="Buscar desenvolvedor"
-                          value={searchDeveloper}
-                          onChange={(e) => setSearchDeveloper(e.target.value)}
-                          className="w-full"
-                        />
-                        {searchDeveloper && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                            onClick={() => setSearchDeveloper("")}
-                          >
-                            ×
-                          </Button>
-                        )}
+                        <DropdownMenu open={isSearchDropdownOpen} onOpenChange={setIsSearchDropdownOpen}>
+                          <DropdownMenuTrigger asChild>
+                            <div className="relative w-full">
+                              <Input
+                                placeholder="Buscar desenvolvedor"
+                                value={searchDeveloper}
+                                onChange={(e) => {
+                                  setSearchDeveloper(e.target.value);
+                                  if (e.target.value.length > 0) {
+                                    setIsSearchDropdownOpen(true);
+                                  }
+                                }}
+                                onClick={() => {
+                                  if (searchDeveloper.length > 0 || developers.length > 0) {
+                                    setIsSearchDropdownOpen(true);
+                                  }
+                                }}
+                                className="w-full pr-8"
+                              />
+                              {searchDeveloper && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSearchDeveloper("");
+                                    setIsSearchDropdownOpen(false);
+                                  }}
+                                >
+                                  ×
+                                </Button>
+                              )}
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-full min-w-[300px]" align="start">
+                            {loadingDevelopers ? (
+                              <div className="flex items-center justify-center p-4">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span>Carregando...</span>
+                              </div>
+                            ) : filteredDevelopers.length > 0 ? (
+                              filteredDevelopers.map((dev) => (
+                                <DropdownMenuItem 
+                                  key={dev.id}
+                                  onClick={() => selectDeveloperFromDropdown(dev)}
+                                  className="flex items-center cursor-pointer"
+                                >
+                                  <div className="flex items-center w-full">
+                                    <Avatar className="h-6 w-6 mr-2">
+                                      <AvatarImage src={dev.avatarUrl || ''} alt={dev.name} />
+                                      <AvatarFallback>{getDeveloperInitials(dev.name)}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="flex-grow">{dev.name || dev.email}</span>
+                                    {selectedTeamMembers.includes(dev.id) && (
+                                      <CheckIcon className="h-4 w-4 ml-2" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                              ))
+                            ) : (
+                              <div className="p-2 text-center text-sm text-muted-foreground">
+                                Nenhum desenvolvedor encontrado
+                              </div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -849,83 +913,4 @@ export default function CreateProjectDialog({
                           min="0"
                           step="0.01"
                           value={toolsCost}
-                          onChange={(e) => setToolsCost(e.target.value)}
-                          placeholder="0,00"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="marketingCost">Marketing (R$)</Label>
-                        <Input
-                          id="marketingCost"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={marketingCost}
-                          onChange={(e) => setMarketingCost(e.target.value)}
-                          placeholder="0,00"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="otherCosts">Outros Custos (R$)</Label>
-                      <Input
-                        id="otherCosts"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={otherCosts}
-                        onChange={(e) => setOtherCosts(e.target.value)}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    
-                    <div className="pt-4 border-t space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Custo Total:</span>
-                        <span className="font-medium">
-                          {calculateTotalCost().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Receita:</span>
-                        <span className="font-medium">
-                          {(parseFloat(totalValue) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Lucro:</span>
-                        <span className="font-medium">
-                          {((parseFloat(totalValue) || 0) - calculateTotalCost()).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Margem de Lucro:</span>
-                        <span className={`font-medium ${calculateProfitMargin() < 30 ? 'text-red-500' : calculateProfitMargin() >= 50 ? 'text-green-500' : 'text-amber-500'}`}>
-                          {calculateProfitMargin().toFixed(2)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  Criar Projeto
-                </Button>
-              </div>
-            </form>
-          </ScrollArea>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
-  );
-}
+                          onChange={(e) => setToolsCost(e.target.value
