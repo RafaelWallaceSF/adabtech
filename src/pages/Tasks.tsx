@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Task } from '@/types';
+import { Task, User } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import CreateTaskDialog from "@/components/tasks/CreateTaskDialog";
 import { TaskDetailDialog } from '@/components/tasks/TaskDetailDialog';
+import { fetchUsers } from '@/services/supabaseService';
 
 const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -14,57 +16,70 @@ const Tasks = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          toast.error("Erro ao carregar tarefas");
-          console.error("Error fetching tasks:", error);
-          return;
-        }
-
-        const mappedTasks: Task[] = data.map(task => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          completed: task.completed,
-          projectId: task.project_id,
-          dueDate: task.due_date,
-          assignedTo: task.assigned_to,
-          createdAt: task.created_at
-        }));
-
-        setTasks(mappedTasks);
-      } catch (error) {
-        toast.error("Erro ao carregar tarefas");
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
+    loadTasks();
+    loadUsers();
   }, []);
 
-  const handleTaskCreated = () => {
-    fetchTasks();
+  const loadUsers = async () => {
+    try {
+      const usersData = await fetchUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Error loading users:", error);
+      toast.error("Erro ao carregar usuários");
+    }
+  };
+
+  const loadTasks = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        toast.error("Erro ao carregar tarefas");
+        console.error("Error fetching tasks:", error);
+        return;
+      }
+
+      const mappedTasks: Task[] = data.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        completed: task.completed,
+        projectId: task.project_id,
+        dueDate: task.due_date,
+        assignedTo: task.assigned_to,
+        createdAt: task.created_at
+      }));
+
+      setTasks(mappedTasks);
+    } catch (error) {
+      toast.error("Erro ao carregar tarefas");
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTaskCreated = (task: Task) => {
+    setTasks(prev => [task, ...prev]);
+    setIsCreateDialogOpen(false);
     toast.success("Tarefa criada com sucesso!");
   };
 
   const handleTaskUpdated = () => {
-    fetchTasks();
+    loadTasks();
     toast.success("Tarefa atualizada com sucesso!");
   };
 
   const handleTaskDeleted = () => {
-    fetchTasks();
+    loadTasks();
     toast.success("Tarefa excluída com sucesso!");
   };
 
@@ -120,7 +135,9 @@ const Tasks = () => {
       <CreateTaskDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onTaskCreated={handleTaskCreated}
+        projectId="default-project"
+        onSubmit={handleTaskCreated}
+        users={users}
       />
 
       {selectedTask && (

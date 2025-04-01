@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Task, User } from "@/types";
 import { format } from "date-fns";
-import { CalendarIcon, CheckCircle2, Circle, User } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Circle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
