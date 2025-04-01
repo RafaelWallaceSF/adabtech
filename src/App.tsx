@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AuthProvider } from "./components/auth/AuthProvider";
 import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
+import { useEffect } from "react";
+import { enableRealtimeForPayments } from "./services/supabaseService";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -22,6 +24,11 @@ import Tasks from "./pages/Tasks";
 const queryClient = new QueryClient();
 
 const App = () => {
+  useEffect(() => {
+    // Enable realtime for payments
+    enableRealtimeForPayments();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

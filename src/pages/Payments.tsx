@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getProjectsWithPayments } from "@/data/mockData";
 import { Payment, PaymentStatus, ProjectWithPayments } from "@/types";
 import {
   Table,
@@ -21,17 +19,19 @@ import {
   Filter, 
   Download,
   Plus,
-  ArrowUp,
-  ArrowDown,
   Search,
   Trash2
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { CreatePaymentDialog } from "@/components/payments/CreatePaymentDialog";
 import DeleteConfirmDialog from "@/components/ui/delete-confirm-dialog";
-import { deletePayment, markPaymentAsPaid } from "@/services/supabaseService";
+import { 
+  deletePayment, 
+  fetchProjects, 
+  markPaymentAsPaid 
+} from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Payments() {
   const [projects, setProjects] = useState<ProjectWithPayments[]>([]);
@@ -41,57 +41,83 @@ export default function Payments() {
   const [paymentToDelete, setPaymentToDelete] = useState<Payment & { projectName: string, client: string } | null>(null);
 
   useEffect(() => {
-    setTimeout(() => {
-      setProjects(getProjectsWithPayments());
-      setLoading(false);
-    }, 500);
+    loadProjects();
+    
+    // Setup realtime subscription for payment changes
+    const paymentsSubscription = supabase
+      .channel('public:payments')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'payments' 
+      }, (payload) => {
+        console.log("Payment update detected:", payload);
+        loadProjects();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(paymentsSubscription);
+    };
   }, []);
+
+  const loadProjects = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching projects with payments...");
+      const projectsData = await fetchProjects();
+      
+      // For each project, fetch its payments
+      const projectsWithPaymentsPromises = projectsData.map(async (project) => {
+        const { data: paymentsData } = await supabase
+          .from("payments")
+          .select("*")
+          .eq("project_id", project.id);
+        
+        const payments = paymentsData?.map(payment => ({
+          id: payment.id,
+          projectId: payment.project_id,
+          amount: Number(payment.amount),
+          dueDate: new Date(payment.due_date),
+          status: payment.status as PaymentStatus,
+          paidDate: payment.paid_date ? new Date(payment.paid_date) : undefined,
+          description: payment.description || ""
+        })) || [];
+        
+        const paidAmount = payments
+          .filter(payment => payment.status === PaymentStatus.PAID)
+          .reduce((sum, payment) => sum + payment.amount, 0);
+        
+        return {
+          ...project,
+          payments,
+          paidAmount,
+          remainingAmount: project.totalValue - paidAmount,
+          tasks: []
+        };
+      });
+      
+      const projectsWithPayments = await Promise.all(projectsWithPaymentsPromises);
+      setProjects(projectsWithPayments);
+    } catch (error) {
+      console.error("Error loading projects with payments:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os pagamentos.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const markAsPaid = async (paymentId: string) => {
     try {
-      // For mock data, check if paymentId is not a UUID and handle accordingly
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
-        // Handle mock data payment update locally
-        setProjects(prevProjects => {
-          const newProjects = prevProjects.map(project => {
-            const updatedPayments = project.payments.map(payment => {
-              if (payment.id === paymentId) {
-                return {
-                  ...payment,
-                  status: PaymentStatus.PAID,
-                  paidDate: new Date()
-                };
-              }
-              return payment;
-            });
-            
-            const paidAmount = updatedPayments
-              .filter(payment => payment.status === PaymentStatus.PAID)
-              .reduce((sum, payment) => sum + payment.amount, 0);
-            
-            return {
-              ...project,
-              payments: updatedPayments,
-              paidAmount,
-              remainingAmount: project.totalValue - paidAmount
-            };
-          });
-          
-          return newProjects;
-        });
-        
-        toast({
-          title: "Pagamento confirmado",
-          description: "O pagamento foi marcado como pago com sucesso.",
-        });
-        
-        return;
-      }
-      
-      // If it's a valid UUID, use the Supabase service
+      // Handle payment update in Supabase
       const success = await markPaymentAsPaid(paymentId);
       
       if (success) {
+        // Update local state to reflect the change
         setProjects(prevProjects => {
           const newProjects = prevProjects.map(project => {
             const updatedPayments = project.payments.map(payment => {
@@ -142,21 +168,12 @@ export default function Payments() {
   };
 
   const handlePaymentCreated = (newPayment: Payment) => {
-    setProjects(prevProjects => {
-      const newProjects = prevProjects.map(project => {
-        if (project.id === newPayment.projectId) {
-          const updatedPayments = [...project.payments, newPayment];
-          
-          return {
-            ...project,
-            payments: updatedPayments,
-            remainingAmount: project.totalValue - project.paidAmount
-          };
-        }
-        return project;
-      });
-      
-      return newProjects;
+    // Refresh projects to get the latest data including the new payment
+    loadProjects();
+    
+    toast({
+      title: "Pagamento criado",
+      description: "O pagamento foi criado com sucesso.",
     });
   };
 
@@ -166,45 +183,11 @@ export default function Payments() {
     try {
       console.log("Deleting payment with ID:", paymentToDelete.id);
       
-      // For mock data, check if paymentId is not a UUID and handle accordingly
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentToDelete.id)) {
-        // Handle mock data payment deletion locally
-        setProjects(prevProjects => {
-          return prevProjects.map(project => {
-            if (project.id === paymentToDelete.projectId) {
-              const updatedPayments = project.payments.filter(
-                payment => payment.id !== paymentToDelete.id
-              );
-              
-              const paidAmount = updatedPayments
-                .filter(payment => payment.status === PaymentStatus.PAID)
-                .reduce((sum, payment) => sum + payment.amount, 0);
-              
-              return {
-                ...project,
-                payments: updatedPayments,
-                paidAmount,
-                remainingAmount: project.totalValue - paidAmount
-              };
-            }
-            return project;
-          });
-        });
-        
-        toast({
-          title: "Pagamento excluído",
-          description: "O pagamento foi excluído com sucesso.",
-        });
-        
-        setPaymentToDelete(null);
-        setIsDeleteDialogOpen(false);
-        return;
-      }
-      
-      // If it's a valid UUID, use the Supabase service
+      // Delete payment in Supabase
       const success = await deletePayment(paymentToDelete.id);
       
       if (success) {
+        // Update local state to reflect the deletion
         setProjects(prevProjects => {
           return prevProjects.map(project => {
             if (project.id === paymentToDelete.projectId) {
