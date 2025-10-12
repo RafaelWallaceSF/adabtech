@@ -7,307 +7,677 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      clients: {
+      Bengo: {
         Row: {
-          address: string | null
-          city: string | null
+          "Data do envio": string
+          Empresa: string | null
+          id: number
+          Mensagem: string | null
+          Telefone: number | null
+        }
+        Insert: {
+          "Data do envio": string
+          Empresa?: string | null
+          id?: number
+          Mensagem?: string | null
+          Telefone?: number | null
+        }
+        Update: {
+          "Data do envio"?: string
+          Empresa?: string | null
+          id?: number
+          Mensagem?: string | null
+          Telefone?: number | null
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          author: string
           created_at: string
-          email: string | null
           id: string
-          name: string
-          notes: string | null
+          task_id: string
+          text: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          task_id: string
+          text: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cursos: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
+      dis_vidal: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
+      Disparos: {
+        Row: {
+          empresa: string | null
           phone: string | null
-          state: string | null
+          status: string | null
+          tipomensagem: string | null
         }
         Insert: {
-          address?: string | null
-          city?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
+          empresa?: string | null
           phone?: string | null
-          state?: string | null
+          status?: string | null
+          tipomensagem?: string | null
         }
         Update: {
-          address?: string | null
-          city?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
+          empresa?: string | null
           phone?: string | null
-          state?: string | null
+          status?: string | null
+          tipomensagem?: string | null
         }
         Relationships: []
       }
-      payments: {
+      estoque: {
         Row: {
-          amount: number
+          code: string | null
           created_at: string
-          description: string | null
-          due_date: string
-          id: string
-          paid_date: string | null
-          project_id: string
+          current_stock: number | null
+          id: number
+          name: string
+          packaging_type: string
+          quantity_per_box: number | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          current_stock?: number | null
+          id?: never
+          name: string
+          packaging_type: string
+          quantity_per_box?: number | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          current_stock?: number | null
+          id?: never
+          name?: string
+          packaging_type?: string
+          quantity_per_box?: number | null
+        }
+        Relationships: []
+      }
+      luah_chat_histories_inst: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
+      miguel_rosa: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
+      monitor_checks: {
+        Row: {
+          checked_at: string
+          error_message: string | null
+          http_code: number | null
+          id: number
+          instance_id: string
+          latency_ms: number | null
           status: string
         }
         Insert: {
-          amount: number
-          created_at?: string
-          description?: string | null
-          due_date: string
-          id?: string
-          paid_date?: string | null
-          project_id: string
+          checked_at?: string
+          error_message?: string | null
+          http_code?: number | null
+          id?: number
+          instance_id: string
+          latency_ms?: number | null
           status: string
         }
         Update: {
-          amount?: number
-          created_at?: string
-          description?: string | null
-          due_date?: string
-          id?: string
-          paid_date?: string | null
-          project_id?: string
+          checked_at?: string
+          error_message?: string | null
+          http_code?: number | null
+          id?: number
+          instance_id?: string
+          latency_ms?: number | null
           status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "payments_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "monitor_dashboard"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "v_uptime_24h"
+            referencedColumns: ["instance_id"]
           },
         ]
       }
-      profiles: {
+      monitor_instances: {
         Row: {
-          avatar_url: string | null
-          email: string | null
+          alert_channel: string | null
+          api_key: string | null
+          api_url: string
+          connection_status: string | null
+          created_at: string | null
+          expected_http: number | null
+          external_id: string | null
           id: string
-          name: string | null
-          role: string | null
+          is_enabled: boolean | null
+          name: string
+          provider: string
+          updated_at: string | null
         }
         Insert: {
-          avatar_url?: string | null
-          email?: string | null
-          id: string
-          name?: string | null
-          role?: string | null
+          alert_channel?: string | null
+          api_key?: string | null
+          api_url: string
+          connection_status?: string | null
+          created_at?: string | null
+          expected_http?: number | null
+          external_id?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          name: string
+          provider: string
+          updated_at?: string | null
         }
         Update: {
-          avatar_url?: string | null
-          email?: string | null
+          alert_channel?: string | null
+          api_key?: string | null
+          api_url?: string
+          connection_status?: string | null
+          created_at?: string | null
+          expected_http?: number | null
+          external_id?: string | null
           id?: string
-          name?: string | null
-          role?: string | null
+          is_enabled?: boolean | null
+          name?: string
+          provider?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
-      project_attachments: {
+      monitor_state: {
         Row: {
-          created_at: string
-          created_by: string | null
-          file_name: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
-          id: string
-          project_id: string
+          consecutive_failures: number | null
+          consecutive_successes: number | null
+          instance_id: string
+          last_alert_at: string | null
+          last_change_at: string | null
+          last_status: string
         }
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          file_name: string
-          file_path: string
-          file_size?: number | null
-          file_type?: string | null
-          id?: string
-          project_id: string
+          consecutive_failures?: number | null
+          consecutive_successes?: number | null
+          instance_id: string
+          last_alert_at?: string | null
+          last_change_at?: string | null
+          last_status?: string
         }
         Update: {
-          created_at?: string
-          created_by?: string | null
-          file_name?: string
-          file_path?: string
-          file_size?: number | null
-          file_type?: string | null
-          id?: string
-          project_id?: string
+          consecutive_failures?: number | null
+          consecutive_successes?: number | null
+          instance_id?: string
+          last_alert_at?: string | null
+          last_change_at?: string | null
+          last_status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "project_attachments_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
+            foreignKeyName: "monitor_state_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "monitor_dashboard"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_state_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "monitor_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_state_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "v_uptime_24h"
+            referencedColumns: ["instance_id"]
           },
         ]
       }
-      projects: {
+      n8n_chat_histories: {
         Row: {
-          client: string
-          client_id: string | null
-          created_at: string
-          deadline: string | null
-          description: string | null
-          developer_shares: Json | null
-          has_implementation_fee: boolean | null
-          id: string
-          implementation_fee: number | null
-          installment_count: number | null
-          is_installment: boolean | null
-          is_recurring: boolean | null
-          name: string
-          payment_date: string | null
-          status: string
-          team_members: string[] | null
-          total_value: number
+          id: number
+          message: Json
+          session_id: string
         }
         Insert: {
-          client: string
-          client_id?: string | null
-          created_at?: string
-          deadline?: string | null
-          description?: string | null
-          developer_shares?: Json | null
-          has_implementation_fee?: boolean | null
-          id?: string
-          implementation_fee?: number | null
-          installment_count?: number | null
-          is_installment?: boolean | null
-          is_recurring?: boolean | null
-          name: string
-          payment_date?: string | null
-          status: string
-          team_members?: string[] | null
-          total_value: number
+          id?: number
+          message: Json
+          session_id: string
         }
         Update: {
-          client?: string
-          client_id?: string | null
-          created_at?: string
-          deadline?: string | null
-          description?: string | null
-          developer_shares?: Json | null
-          has_implementation_fee?: boolean | null
-          id?: string
-          implementation_fee?: number | null
-          installment_count?: number | null
-          is_installment?: boolean | null
-          is_recurring?: boolean | null
-          name?: string
-          payment_date?: string | null
-          status?: string
-          team_members?: string[] | null
-          total_value?: number
+          id?: number
+          message?: Json
+          session_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      Nacional: {
+        Row: {
+          CNPJ: string | null
+          Contato: string | null
+          created_at: string
+          id: number
+          Razao: string | null
+          Validacao: string | null
+        }
+        Insert: {
+          CNPJ?: string | null
+          Contato?: string | null
+          created_at?: string
+          id?: number
+          Razao?: string | null
+          Validacao?: string | null
+        }
+        Update: {
+          CNPJ?: string | null
+          Contato?: string | null
+          created_at?: string
+          id?: number
+          Razao?: string | null
+          Validacao?: string | null
+        }
+        Relationships: []
+      }
+      Nacional_Cob: {
+        Row: {
+          Apos_disparos: string | null
+          CNPJ: string | null
+          COD_CLI: string | null
+          created_at: string
+          "Data de Pagamento": string | null
+          DUPLICATA: number | null
+          Enviado: string | null
+          id: number
+          NOME_VENDEDOR: string | null
+          Numero: string | null
+          Razao: string | null
+          "Tipo de envio": string | null
+          Titulo: string | null
+          Valor: string | null
+          Vencimento: string | null
+        }
+        Insert: {
+          Apos_disparos?: string | null
+          CNPJ?: string | null
+          COD_CLI?: string | null
+          created_at?: string
+          "Data de Pagamento"?: string | null
+          DUPLICATA?: number | null
+          Enviado?: string | null
+          id?: number
+          NOME_VENDEDOR?: string | null
+          Numero?: string | null
+          Razao?: string | null
+          "Tipo de envio"?: string | null
+          Titulo?: string | null
+          Valor?: string | null
+          Vencimento?: string | null
+        }
+        Update: {
+          Apos_disparos?: string | null
+          CNPJ?: string | null
+          COD_CLI?: string | null
+          created_at?: string
+          "Data de Pagamento"?: string | null
+          DUPLICATA?: number | null
+          Enviado?: string | null
+          id?: number
+          NOME_VENDEDOR?: string | null
+          Numero?: string | null
+          Razao?: string | null
+          "Tipo de envio"?: string | null
+          Titulo?: string | null
+          Valor?: string | null
+          Vencimento?: string | null
+        }
+        Relationships: []
+      }
+      Nacional_Estoque: {
+        Row: {
+          cod_prod: number | null
+          created_at: string
+          estoque: string | null
+          id: number
+          nome: string | null
+          preco: string | null
+        }
+        Insert: {
+          cod_prod?: number | null
+          created_at?: string
+          estoque?: string | null
+          id?: number
+          nome?: string | null
+          preco?: string | null
+        }
+        Update: {
+          cod_prod?: number | null
+          created_at?: string
+          estoque?: string | null
+          id?: number
+          nome?: string | null
+          preco?: string | null
+        }
+        Relationships: []
+      }
+      people: {
+        Row: {
+          contact: string
+          created_at: string
+          id: string
+          name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          contact: string
+          created_at?: string
+          id?: string
+          name: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_settings: {
+        Row: {
+          created_at: string
+          id: string
+          launch_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          launch_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          launch_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
-          assigned_to: string | null
-          completed: boolean | null
+          actual_cost: number
+          assignee_id: string | null
           created_at: string
+          deadline: string | null
+          department: Database["public"]["Enums"]["department_type"]
           description: string | null
-          due_date: string | null
+          estimated_cost: number
           id: string
-          project_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          receipt_url: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          tags: string[] | null
           title: string
+          updated_at: string
         }
         Insert: {
-          assigned_to?: string | null
-          completed?: boolean | null
+          actual_cost?: number
+          assignee_id?: string | null
           created_at?: string
+          deadline?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
           description?: string | null
-          due_date?: string | null
+          estimated_cost?: number
           id?: string
-          project_id: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
           title: string
+          updated_at?: string
         }
         Update: {
-          assigned_to?: string | null
-          completed?: boolean | null
+          actual_cost?: number
+          assignee_id?: string | null
           created_at?: string
+          deadline?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
           description?: string | null
-          due_date?: string | null
+          estimated_cost?: number
           id?: string
-          project_id?: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tasks_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      monitor_dashboard: {
+        Row: {
+          id: string | null
+          is_enabled: boolean | null
+          last_change_at: string | null
+          last_checked_at: string | null
+          last_error: string | null
+          last_http_code: number | null
+          last_latency_ms: number | null
+          last_status: string | null
+          name: string | null
+          provider: string | null
+        }
+        Relationships: []
+      }
+      monitor_last_check: {
+        Row: {
+          checked_at: string | null
+          error_message: string | null
+          http_code: number | null
+          instance_id: string | null
+          latency_ms: number | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "v_uptime_24h"
+            referencedColumns: ["instance_id"]
+          },
+        ]
+      }
+      v_uptime_24h: {
+        Row: {
+          instance_id: string | null
+          name: string | null
+          uptime_24h: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      delete_project_attachment: {
-        Args: {
-          p_attachment_id: string
-        }
-        Returns: undefined
-      }
-      get_project_attachments: {
-        Args: {
-          p_project_id: string
-        }
-        Returns: {
-          created_at: string
-          created_by: string | null
-          file_name: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
-          id: string
-          project_id: string
-        }[]
-      }
-      insert_project_attachment: {
-        Args: {
-          p_project_id: string
-          p_file_name: string
-          p_file_path: string
-          p_file_type: string
-          p_file_size: number
-        }
-        Returns: {
-          created_at: string
-          created_by: string | null
-          file_name: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
-          id: string
-          project_id: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      department_type:
+        | "Marketing"
+        | "Operações"
+        | "Tecnologia"
+        | "Jurídico"
+        | "Financeiro"
+        | "Geral"
+      priority_level: "Baixa" | "Média" | "Alta" | "Crítica"
+      task_status:
+        | "Backlog"
+        | "Em Planejamento"
+        | "Em Execução"
+        | "Aguardando Terceiros"
+        | "Em Aprovação"
+        | "Bloqueado"
+        | "Concluído"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -315,27 +685,33 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -343,20 +719,24 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -364,20 +744,24 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -385,29 +769,60 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      department_type: [
+        "Marketing",
+        "Operações",
+        "Tecnologia",
+        "Jurídico",
+        "Financeiro",
+        "Geral",
+      ],
+      priority_level: ["Baixa", "Média", "Alta", "Crítica"],
+      task_status: [
+        "Backlog",
+        "Em Planejamento",
+        "Em Execução",
+        "Aguardando Terceiros",
+        "Em Aprovação",
+        "Bloqueado",
+        "Concluído",
+      ],
+    },
+  },
+} as const
