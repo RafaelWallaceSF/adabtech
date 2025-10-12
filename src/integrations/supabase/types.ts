@@ -465,6 +465,60 @@ export type Database = {
         }
         Relationships: []
       }
+      negocios: {
+        Row: {
+          cliente: string
+          created_at: string
+          data_criacao: string
+          data_fechamento_prevista: string | null
+          data_fechamento_real: string | null
+          descricao: string | null
+          id: string
+          observacoes: string | null
+          origem: string | null
+          probabilidade: number | null
+          responsavel: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          data_criacao?: string
+          data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: string | null
+          probabilidade?: number | null
+          responsavel?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          data_criacao?: string
+          data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: string | null
+          probabilidade?: number | null
+          responsavel?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       people: {
         Row: {
           contact: string
